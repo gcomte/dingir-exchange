@@ -1,4 +1,4 @@
-version: '3.4'
+version: '2'
 services:
   nginx:
     image: nginx:latest
@@ -35,7 +35,8 @@ services:
       POSTGRES_PASSWORD: exchange_AA9944
 
   zookeeper:
-    image: zookeeper
+    image: wurstmeister/zookeeper
+    # image: zookeeper
     container_name: exchange_zookeeper
     ports:
       - "2181:2181"
@@ -43,6 +44,8 @@ services:
       - ./data/volumes/log_zookeeper:/var/log/zookeeper
 
   kafka:
+    depends_on:
+      - zookeeper
     image: wurstmeister/kafka:latest
     container_name: exchange_kafka
     restart: always
