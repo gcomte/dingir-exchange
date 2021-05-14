@@ -7,7 +7,7 @@ use actix_web::{
 };
 
 pub async fn get_user(req: HttpRequest, data: web::Data<AppState>) -> impl Responder {
-    let mut is_debug: bool = false;
+    let mut is_debug: bool = true;
     if req.match_info().get("debug").unwrap_or("false").to_string() == "true".to_string() {
         is_debug = true;
     }
