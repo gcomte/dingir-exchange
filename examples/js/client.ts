@@ -106,9 +106,7 @@ class Client {
     let amountRounded = Number(amount).toFixed(marketInfo.amount_precision);
     let priceRounded = Number(price).toFixed(marketInfo.price_precision);
 
-    let signature = "";
     if (this.accounts.has(user_id) && order_type == ORDER_TYPE_LIMIT) {
-      // add signature for this order
       let tokenBuy, tokenSell, totalSell, totalBuy;
       let baseTokenInfo = this.assets.get(marketInfo.base);
       let quoteTokenInfo = this.assets.get(marketInfo.quote);
@@ -132,7 +130,6 @@ class Client {
         totalSell,
         totalBuy
       });
-      signature = this.accounts.get(user_id).signHashPacked(orderInput.hash());
     }
     return {
       user_id,
@@ -143,7 +140,6 @@ class Client {
       price: priceRounded,
       taker_fee,
       maker_fee,
-      signature
     };
   }
   async orderPut(
@@ -256,9 +252,7 @@ class Client {
 
   createTransferTx(from, to, asset, delta, memo) {
     let user_id = from;
-    let signature = "";
     if (this.accounts.has(user_id)) {
-      // add signature for this tx
       let nonce = 0; // use 0 as nonce for now
       let tx = new TransferTx({
         token_id: this.assets.get(asset).inner_id,
@@ -267,7 +261,6 @@ class Client {
         from_nonce: nonce,
         to
       });
-      signature = this.accounts.get(user_id).signHashPacked(tx.hash());
     }
     return {
       from,
@@ -275,7 +268,6 @@ class Client {
       asset,
       delta,
       memo,
-      signature
     };
   }
 
