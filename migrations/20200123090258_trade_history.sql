@@ -8,8 +8,7 @@ CREATE TABLE balance_history (
     balance DECIMAL(30, 16) NOT NULL,
     balance_available DECIMAL(30, 16) NOT NULL,
     balance_frozen DECIMAL(30, 16) NOT NULL,
-    detail TEXT NOT NULL,
-    signature BYTEA NOT NULL
+    detail TEXT NOT NULL
 );
 
 CREATE INDEX balance_history_idx_user_asset ON balance_history (user_id, asset);
@@ -34,8 +33,7 @@ CREATE TABLE order_history (
     finished_quote DECIMAL(30, 16) NOT NULL,
     finished_fee DECIMAL(30, 16) NOT NULL,
     status order_status NOT NULL DEFAULT 'filled',
-    post_only BOOL NOT NULL DEFAULT 'false',
-    signature BYTEA NOT NULL
+    post_only BOOL NOT NULL DEFAULT 'false'
 );
 
 CREATE INDEX order_history_idx_user_market ON order_history (user_id, market);
