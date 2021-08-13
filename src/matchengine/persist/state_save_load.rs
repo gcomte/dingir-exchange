@@ -9,7 +9,6 @@ use crate::types::SimpleResult;
 use crate::utils;
 use crate::utils::FTimestamp;
 use crate::{config, storage};
-use arrayref::array_ref;
 use models::{tablenames, BalanceSlice, BalanceSliceInsert, OperationLog, OrderSlice, SliceHistory};
 use std::convert::TryFrom;
 use std::time::{Duration, Instant};
