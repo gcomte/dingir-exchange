@@ -92,7 +92,6 @@ class Client {
     let amountRounded = Number(amount).toFixed(marketInfo.amount_precision);
     let priceRounded = Number(price).toFixed(marketInfo.price_precision);
 
-    let signature = "";
     let order = {
       user_id,
       market,
@@ -102,14 +101,7 @@ class Client {
       price: priceRounded,
       taker_fee,
       maker_fee,
-      signature,
     };
-    // TODO: better type check
-    if (this.accounts.has(user_id) && (order_type == ORDER_TYPE_LIMIT || order_type == "LIMIT")) {
-      // add signature for this order
-      let account = this.accounts.get(user_id);
-      order = signOrder(account, marketInfo, baseTokenInfo, quoteTokenInfo, order);
-    }
     return order;
   }
   async orderPut(user_id, market, order_side, order_type, amount, price, taker_fee, maker_fee) {
@@ -184,9 +176,7 @@ class Client {
 
   createTransferTx(from, to, asset, delta, memo) {
     let user_id = from;
-    let signature = "";
     if (this.accounts.has(user_id)) {
-      // add signature for this tx
       let nonce = 0; // use 0 as nonce for now
       let tx = new TransferTx({
         token_id: this.assets.get(asset).inner_id,
@@ -195,7 +185,6 @@ class Client {
         from_nonce: nonce,
         to,
       });
-      signature = this.accounts.get(user_id).signHashPacked(tx.hash());
     }
     return {
       from,
@@ -203,7 +192,6 @@ class Client {
       asset,
       delta,
       memo,
-      signature,
     };
   }
 
@@ -226,7 +214,6 @@ class Client {
       business_id,
       delta: -delta,
       detail: JSON.stringify(detail),
-      signature: signature,
     };
   }
 
@@ -254,63 +241,6 @@ class Client {
   async debugReload() {
     return await this.client.DebugReload({});
   }
-
-  async registerUser(user) {
-    return await this.client.RegisterUser({
-      user_id: user.id || user.user_id, // legacy reasons
-      l1_address: user.l1_address,
-      l2_pubkey: user.l2_pubkey,
-    });
-  }
-}
-
-// TODO: move else where
-function signOrder(account, marketInfo, baseTokenInfo, quoteTokenInfo, order, checkPrec = true) {
-  let { user_id, market, order_side, order_type, amount, price, taker_fee, maker_fee } = order;
-
-  let amountRounded = Number(amount).toFixed(marketInfo.amount_precision);
-  let priceRounded = Number(price).toFixed(marketInfo.price_precision);
-  if (checkPrec && !decimalEqual(amountRounded, amount)) {
-    throw new Error("invalid amount precision");
-  }
-  if (checkPrec && !decimalEqual(priceRounded, price)) {
-    throw new Error("invalid price precision");
-  }
-
-  let tokenBuy, tokenSell, totalSell, totalBuy;
-  let amountFullPrec = fullPrec(amountRounded, marketInfo.amount_precision);
-  let priceFullPrec = fullPrec(priceRounded, marketInfo.price_precision);
-  let quoteFullPrec = amountFullPrec.mul(priceFullPrec);
-  if (order_side == ORDER_SIDE_BID || order_side == "BID") {
-    tokenBuy = baseTokenInfo.inner_id;
-    tokenSell = quoteTokenInfo.inner_id;
-    totalBuy = amountFullPrec;
-    totalSell = quoteFullPrec;
-  } else {
-    tokenSell = baseTokenInfo.inner_id;
-    tokenBuy = quoteTokenInfo.inner_id;
-    totalSell = amountFullPrec;
-    totalBuy = quoteFullPrec;
-  }
-  let orderInput = new OrderInput({
-    tokenSell,
-    tokenBuy,
-    totalSell,
-    totalBuy,
-  });
-  let signature = account.signHashPacked(orderInput.hash());
-
-  return {
-    user_id,
-    market,
-    order_side,
-    order_type,
-    amount: amountRounded,
-    price: priceRounded,
-    taker_fee,
-    maker_fee,
-    signature,
-  };
 }
 
 let defaultClient = new Client();
