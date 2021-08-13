@@ -2,8 +2,7 @@ use crate::config;
 use crate::market::{Market, OrderCommitment};
 use anyhow::{bail, Result};
 use fluidex_common::rust_decimal::{self, RoundingStrategy};
-use fluidex_common::types::{DecimalExt, FrExt};
-use fluidex_common::Fr;
+use fluidex_common::types::DecimalExt;
 use orchestra::rpc::exchange::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -31,7 +30,7 @@ impl AssetManager {
                 AssetInfo {
                     prec_save: item.prec_save,
                     prec_show: item.prec_show,
-                    inner_id: item.rollup_token_id as u32,
+                    inner_id: u32::from_str_radix(&item.id, 36).unwrap(), // turn string into unique u32
                 },
             );
         }
@@ -46,7 +45,7 @@ impl AssetManager {
                 AssetInfo {
                     prec_save: item.prec_save,
                     prec_show: item.prec_show,
-                    inner_id: item.rollup_token_id as u32,
+                    inner_id: u32::from_str_radix(&item.id, 36).unwrap(), // turn string into unique u32
                 },
             );
             if ret.is_some() {
@@ -94,16 +93,16 @@ impl AssetManager {
 
         match OrderSide::from_i32(o.order_side) {
             Some(OrderSide::Ask) => Ok(OrderCommitment {
-                token_buy: Fr::from_u32(quote_token.inner_id),
-                token_sell: Fr::from_u32(base_token.inner_id),
-                total_buy: (amount * price).to_fr(market.amount_prec + market.price_prec),
-                total_sell: amount.to_fr(market.amount_prec),
+                token_buy: quote_token.inner_id,
+                token_sell: base_token.inner_id,
+                total_buy: (amount * price).to_u64(market.amount_prec + market.price_prec),
+                total_sell: amount.to_u64(market.amount_prec),
             }),
             Some(OrderSide::Bid) => Ok(OrderCommitment {
-                token_buy: Fr::from_u32(base_token.inner_id),
-                token_sell: Fr::from_u32(quote_token.inner_id),
-                total_buy: amount.to_fr(market.amount_prec),
-                total_sell: (amount * price).to_fr(market.amount_prec + market.price_prec),
+                token_buy: base_token.inner_id,
+                token_sell: quote_token.inner_id,
+                total_buy: amount.to_u64(market.amount_prec),
+                total_sell: (amount * price).to_u64(market.amount_prec + market.price_prec),
             }),
             None => bail!("market error"),
         }
