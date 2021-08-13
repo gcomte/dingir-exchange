@@ -1,3 +1,9 @@
+### About this fork
+This is a fork of [Dingir Exchange](https://github.com/fluidex/dingir-exchange), with the aim of creating a general purpose matching engine.  
+Consequently, all Ethereum-specific parts have been removed.
+
+---
+
 # Dingir Exchange
 Dingir Exchange is a high performance exchange trading server.   
 The core matching engine is a fully async, single threaded, memory based matching engine with thousands of TPS. 
