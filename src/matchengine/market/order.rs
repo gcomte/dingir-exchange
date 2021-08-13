@@ -176,6 +176,6 @@ pub struct OrderCommitment {
     // nonce
     pub token_sell: u32,
     pub token_buy: u32,
-    pub total_sell: u32,
-    pub total_buy: u32,
+    pub total_sell: u64,
+    pub total_buy: u64,
 }
