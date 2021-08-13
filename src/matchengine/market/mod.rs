@@ -1,6 +1,6 @@
 #![allow(clippy::if_same_then_else)]
 use crate::asset::{BalanceManager, BalanceType, BalanceUpdateController, BalanceUpdateParams, BusinessType};
-use crate::config::{self, OrderSignatrueCheck};
+use crate::config;
 use crate::persist::PersistExector;
 use crate::sequencer::Sequencer;
 use crate::types::{self, MarketRole, OrderEventType};
@@ -45,7 +45,6 @@ pub struct Market {
 
     pub disable_self_trade: bool,
     pub disable_market_order: bool,
-    pub check_eddsa_signatue: OrderSignatrueCheck,
 }
 
 pub struct BalanceManagerWrapper<'a> {
@@ -125,7 +124,6 @@ impl Market {
             trade_count: 0,
             disable_self_trade: global_settings.disable_self_trade,
             disable_market_order: global_settings.disable_market_order,
-            check_eddsa_signatue: global_settings.check_eddsa_signatue,
         };
         Ok(market)
     }
@@ -266,7 +264,6 @@ impl Market {
             finished_quote: Decimal::zero(),
             finished_fee: Decimal::zero(),
             post_only: order_input.post_only,
-            signature: order_input.signature,
         };
         let order = self.execute_order(
             sequencer,
@@ -854,7 +851,6 @@ mod tests {
                         market_price: Decimal::zero(),
                         change: amount,
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -898,13 +894,13 @@ mod tests {
                 maker_fee: dec!(0),
                 market: market.name.to_string(),
                 post_only: false,
-                signature: [0; 64],
             };
             market
                 .put_order(sequencer, balance_manager.into(), &mut update_controller, &mut persistor, order)
                 .unwrap();
         }
     }
+
     #[test]
     fn test_market_taker_is_bid() {
         let mut update_controller = BalanceUpdateController::new();
@@ -930,7 +926,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: false,
-            signature: [0; 64],
         };
         let ask_order = market
             .put_order(
@@ -956,7 +951,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: false,
-            signature: [0; 64],
         };
         let bid_order = market
             .put_order(
@@ -1045,7 +1039,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: true,
-            signature: [0; 64],
         };
         let ask_order = market
             .put_order(
@@ -1072,7 +1065,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: true,
-            signature: [0; 64],
         };
         let bid_order = market
             .put_order(

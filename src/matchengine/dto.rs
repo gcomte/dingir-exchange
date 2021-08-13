@@ -1,7 +1,6 @@
 use crate::market;
 
-use anyhow::{anyhow, bail, Result};
-use arrayref::array_ref;
+use anyhow::{anyhow, Result};
 use fluidex_common::rust_decimal::{self, prelude::Zero, Decimal};
 use fluidex_common::utils::timeutil::FTimestamp;
 use orchestra::rpc::exchange::*;
@@ -71,17 +70,6 @@ impl TryFrom<OrderPutRequest> for market::OrderInput {
             maker_fee: str_to_decimal(&req.maker_fee, true).map_err(|_| anyhow!("invalid maker fee"))?,
             market: req.market.clone(),
             post_only: req.post_only,
-            signature: if req.signature.is_empty() {
-                log::warn!("empty signature. should only happen in tests");
-                [0; 64]
-            } else {
-                let sig = req.signature.trim_start_matches("0x");
-                let v: Vec<u8> = hex::decode(sig)?;
-                if v.len() != 64 {
-                    bail!("invalid signature length");
-                }
-                *array_ref!(v[..64], 0, 64)
-            },
         })
     }
 }
