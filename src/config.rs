@@ -11,12 +11,8 @@ pub struct Asset {
     pub id: String,
     pub symbol: String,
     pub name: String,
-    pub chain_id: i16,
-    pub token_address: String,
-    pub rollup_token_id: i32,
     pub prec_save: u32,
     pub prec_show: u32,
-    pub logo_uri: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -83,27 +79,6 @@ impl<'de> de::Deserialize<'de> for PersistPolicy {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum OrderSignatrueCheck {
-    None,
-    // auto means check sig only if sig != ""
-    Auto,
-    Needed,
-}
-
-impl<'de> de::Deserialize<'de> for OrderSignatrueCheck {
-    fn deserialize<D: de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(deserializer)?;
-
-        match s.as_ref() {
-            "true" => Ok(OrderSignatrueCheck::Needed),
-            "false" => Ok(OrderSignatrueCheck::None),
-            "auto" => Ok(OrderSignatrueCheck::Auto),
-            _ => Err(serde::de::Error::custom("unexpected specification for order sig check policy")),
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -123,7 +98,6 @@ pub struct Settings {
     pub cache_timeout: f64,
     pub disable_self_trade: bool,
     pub disable_market_order: bool,
-    pub check_eddsa_signatue: OrderSignatrueCheck,
     pub user_order_num_limit: usize,
 }
 
@@ -146,7 +120,6 @@ impl Default for Settings {
             cache_timeout: 0.45,
             disable_self_trade: true,
             disable_market_order: false,
-            check_eddsa_signatue: OrderSignatrueCheck::None,
             user_order_num_limit: 1000,
         }
     }

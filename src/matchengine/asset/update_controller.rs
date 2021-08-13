@@ -23,7 +23,6 @@ pub struct BalanceUpdateParams {
     pub market_price: Decimal,
     pub change: Decimal,
     pub detail: serde_json::Value,
-    pub signature: Vec<u8>,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -123,7 +122,6 @@ impl BalanceUpdateController {
                 balance_available,
                 balance_frozen,
                 detail: params.detail.to_string(),
-                signature: params.signature,
             };
             persistor.put_balance(&balance_history);
             match params.business_type {

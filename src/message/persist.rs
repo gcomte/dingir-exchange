@@ -616,7 +616,6 @@ impl<'r> From<&'r super::BalanceMessage> for models::BalanceHistory {
             balance_available: DecimalDbType::from_str(&origin.balance_available).unwrap_or_else(decimal_warning),
             balance_frozen: DecimalDbType::from_str(&origin.balance_frozen).unwrap_or_else(decimal_warning),
             detail: origin.detail.clone(),
-            signature: origin.signature.as_bytes().to_vec(),
         }
     }
 }
@@ -685,7 +684,6 @@ impl<'r> From<&'r super::TransferMessage> for models::InternalTx {
             user_to: origin.user_to as i32,     // TODO: will this overflow?
             asset: origin.asset.clone(),
             amount: DecimalDbType::from_str(&origin.amount).unwrap_or_else(decimal_warning),
-            signature: origin.signature.as_bytes().to_vec(),
         }
     }
 }
