@@ -8,12 +8,8 @@ impl From<AssetDesc> for config::Asset {
             id: origin.id,
             symbol: origin.symbol,
             name: origin.name,
-            chain_id: origin.chain_id,
-            token_address: origin.token_address,
-            rollup_token_id: origin.rollup_token_id,
             prec_show: origin.precision_show as u32,
             prec_save: origin.precision_stor as u32,
-            logo_uri: origin.logo_uri,
         }
     }
 }
@@ -62,7 +58,7 @@ fn sqlverf_loadmarket_from_db() -> impl std::any::Any {
     let t = TimestampDbType::from_timestamp(0, 0);
     sqlx::query_as!(
         MarketDesc,
-        "select id, create_time, base_asset, quote_asset, 
+        "select id, create_time, base_asset, quote_asset,
         precision_amount, precision_price, precision_fee,
         min_amount, market_name from market where create_time > $1",
         t
@@ -91,8 +87,7 @@ impl MarketConfigs {
         T: sqlx::Executor<'e, Database = DbType> + Send,
     {
         let query = format!(
-            "select id, symbol, name, chain_id, token_address, rollup_token_id, precision_stor, precision_show,
-            logo_uri, create_time from {} where create_time > $1",
+            "select id, symbol, name, precision_stor, precision_show, create_time from {} where create_time > $1",
             tablenames::ASSET
         );
 
@@ -116,7 +111,7 @@ impl MarketConfigs {
         T: sqlx::Executor<'e, Database = DbType>,
     {
         let query = format!(
-            "select id, create_time, base_asset, quote_asset, 
+            "select id, create_time, base_asset, quote_asset,
         precision_amount, precision_price, precision_fee,
         min_amount, market_name from {} where create_time > $1",
             tablenames::MARKET
@@ -148,7 +143,7 @@ fn sqlverf_persist_asset_to_db() -> impl std::any::Any {
     };
 
     sqlx::query!(
-        "insert into asset (asset_name, precision_stor, precision_show) values ($1, $2, $3) 
+        "insert into asset (asset_name, precision_stor, precision_show) values ($1, $2, $3)
         on conflict (asset_name) do update set precision_stor=EXCLUDED.precision_stor, precision_show=EXCLUDED.precision_show",
         &asset.name,
         asset.prec_save as i16,
@@ -163,13 +158,13 @@ where
 {
     let query_template = if force {
         format!(
-            "insert into {} (id, symbol, name, token_address, rollup_token_id, precision_stor, precision_show) values ($1, $2, $3, $4, $5, $6, $7) 
+            "insert into {} (id, symbol, name, precision_stor, precision_show) values ($1, $2, $3, $4, $5)
         on conflict do update set precision_stor=EXCLUDED.precision_stor, precision_show=EXCLUDED.precision_show",
             tablenames::ASSET
         )
     } else {
         format!(
-            "insert into {} (id, symbol, name, token_address, rollup_token_id, precision_stor, precision_show) values ($1, $2, $3, $4, $5, $6, $7) on conflict do nothing",
+            "insert into {} (id, symbol, name, precision_stor, precision_show) values ($1, $2, $3, $4, $5) on conflict do nothing",
             tablenames::ASSET
         )
     };
@@ -178,8 +173,6 @@ where
         .bind(&asset.id)
         .bind(&asset.symbol)
         .bind(&asset.name)
-        .bind(&asset.token_address)
-        .bind(&asset.rollup_token_id)
         .bind(asset.prec_save as i16)
         .bind(asset.prec_show as i16)
         .execute(db_conn)
@@ -193,9 +186,9 @@ where
     T: sqlx::Executor<'e, Database = DbType>,
 {
     sqlx::query(&format!(
-        "insert into {} (base_asset, quote_asset, 
-            precision_amount, precision_price, precision_fee, 
-            min_amount, market_name) 
+        "insert into {} (base_asset, quote_asset,
+            precision_amount, precision_price, precision_fee,
+            min_amount, market_name)
             values ($1, $2, $3, $4, $5, $6, $7)",
         tablenames::MARKET
     ))
