@@ -167,11 +167,7 @@ impl Controller {
                 .map(|item| asset_list_response::AssetInfo {
                     symbol: item.symbol.clone(),
                     name: item.name.clone(),
-                    chain_id: item.chain_id as i32,
-                    token_address: item.token_address.clone(),
                     precision: item.prec_show,
-                    logo_uri: item.logo_uri.clone(),
-                    inner_id: item.rollup_token_id,
                 })
                 .collect(),
         };
@@ -442,7 +438,6 @@ impl Controller {
                     business_id: req.business_id,
                     change,
                     detail: detail_json,
-                    signature: req.signature.clone().map_or_else(Vec::new, |sig| sig.as_bytes().to_vec()),
                 },
             )
             .map_err(|e| Status::invalid_argument(format!("{}", e)))?;
@@ -672,7 +667,6 @@ impl Controller {
                     business_id,
                     change: -change,
                     detail: detail_json.clone(),
-                    signature: vec![],
                 },
             )
             .map_err(|e| Status::invalid_argument(format!("{}", e)))?;
@@ -690,7 +684,6 @@ impl Controller {
                     business_id,
                     change,
                     detail: detail_json,
-                    signature: vec![],
                 },
             )
             .map_err(|e| Status::invalid_argument(format!("{}", e)))?;
@@ -702,7 +695,6 @@ impl Controller {
                 user_to: to_user_id as i32,     // TODO: will this overflow?
                 asset: asset_id.to_string(),
                 amount: change,
-                signature: req.signature.as_bytes().to_vec(),
             });
 
             self.append_operation_log(OPERATION_TRANSFER, &req);

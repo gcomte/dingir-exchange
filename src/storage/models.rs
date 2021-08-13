@@ -30,12 +30,8 @@ pub struct AssetDesc {
     pub id: String,
     pub symbol: String,
     pub name: String,
-    pub chain_id: i16,
-    pub token_address: String,
-    pub rollup_token_id: i32,
     pub precision_stor: i16,
     pub precision_show: i16,
-    pub logo_uri: String,
     pub create_time: Option<TimestampDbType>,
 }
 
@@ -74,7 +70,6 @@ pub struct BalanceHistory {
     pub balance_frozen: DecimalDbType,
     // TODO: change it to jsonb
     pub detail: String,
-    pub signature: Vec<u8>,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
@@ -104,7 +99,6 @@ pub struct OrderHistory {
     pub finished_quote: DecimalDbType,
     pub finished_fee: DecimalDbType,
     pub post_only: bool,
-    pub signature: Vec<u8>,
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]
@@ -177,7 +171,6 @@ pub struct OrderSlice {
     pub finished_quote: DecimalDbType,
     pub finished_fee: DecimalDbType,
     pub post_only: bool,
-    pub signature: Vec<u8>,
 }
 
 // xx_id here means the last persisted entry id
@@ -207,7 +200,6 @@ pub struct InternalTx {
     pub user_to: i32,
     pub asset: String,
     pub amount: DecimalDbType,
-    pub signature: Vec<u8>,
 }
 
 /*
@@ -223,7 +215,7 @@ impl sqlxextend::TableSchemas for InternalTx {
     fn table_name() -> &'static str {
         INTERNALTX
     }
-    const ARGN: i32 = 6;
+    const ARGN: i32 = 5;
 }
 
 impl sqlxextend::BindQueryArg<'_, DbType> for InternalTx {
@@ -233,36 +225,17 @@ impl sqlxextend::BindQueryArg<'_, DbType> for InternalTx {
         arg.add(self.user_to);
         arg.add(&self.asset);
         arg.add(self.amount);
-        arg.add(&self.signature);
     }
 }
 
 impl sqlxextend::SqlxAction<'_, sqlxextend::InsertTable, DbType> for InternalTx {}
-
-/* --------------------- models::AccountDesc -----------------------------*/
-impl sqlxextend::TableSchemas for AccountDesc {
-    fn table_name() -> &'static str {
-        ACCOUNT
-    }
-    const ARGN: i32 = 3;
-}
-
-impl sqlxextend::BindQueryArg<'_, DbType> for AccountDesc {
-    fn bind_args<'g, 'q: 'g>(&'q self, arg: &mut impl sqlx::Arguments<'g, Database = DbType>) {
-        arg.add(self.id);
-        arg.add(&self.l1_address);
-        arg.add(&self.l2_pubkey);
-    }
-}
-
-impl sqlxextend::SqlxAction<'_, sqlxextend::InsertTable, DbType> for AccountDesc {}
 
 /* --------------------- models::BalanceHistory -----------------------------*/
 impl sqlxextend::TableSchemas for BalanceHistory {
     fn table_name() -> &'static str {
         BALANCEHISTORY
     }
-    const ARGN: i32 = 10;
+    const ARGN: i32 = 9;
     fn default_argsn() -> Vec<i32> {
         vec![1]
     }
@@ -279,7 +252,6 @@ impl sqlxextend::BindQueryArg<'_, DbType> for BalanceHistory {
         arg.add(&self.balance_available);
         arg.add(&self.balance_frozen);
         arg.add(&self.detail);
-        arg.add(&self.signature);
     }
 }
 
@@ -321,7 +293,7 @@ impl sqlxextend::TableSchemas for OrderHistory {
     fn table_name() -> &'static str {
         ORDERHISTORY
     }
-    const ARGN: i32 = 17;
+    const ARGN: i32 = 16;
     //fn default_argsn() -> Vec<i32>{ vec![1] }
 }
 
@@ -343,7 +315,6 @@ impl sqlxextend::BindQueryArg<'_, DbType> for OrderHistory {
         arg.add(&self.finished_fee);
         arg.add(&self.status);
         arg.add(&self.post_only);
-        arg.add(&self.signature);
     }
 }
 
@@ -374,7 +345,7 @@ impl sqlxextend::TableSchemas for OrderSlice {
     fn table_name() -> &'static str {
         ORDERSLICE
     }
-    const ARGN: i32 = 19;
+    const ARGN: i32 = 18;
     //fn default_argsn() -> Vec<i32>{ vec![1] }
 }
 
@@ -398,7 +369,6 @@ impl sqlxextend::BindQueryArg<'_, DbType> for OrderSlice {
         arg.add(&self.finished_quote);
         arg.add(&self.finished_fee);
         arg.add(&self.post_only);
-        arg.add(&self.signature);
     }
 }
 

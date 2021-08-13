@@ -1,6 +1,6 @@
 #![allow(clippy::if_same_then_else)]
 use crate::asset::{BalanceManager, BalanceType};
-use crate::config::{self, OrderSignatrueCheck};
+use crate::config;
 use crate::persist::PersistExector;
 use crate::sequencer::Sequencer;
 use crate::types::{self, MarketRole, OrderEventType};
@@ -44,7 +44,6 @@ pub struct Market {
 
     pub disable_self_trade: bool,
     pub disable_market_order: bool,
-    pub check_eddsa_signatue: OrderSignatrueCheck,
 }
 
 pub struct BalanceManagerWrapper<'a> {
@@ -123,7 +122,6 @@ impl Market {
             trade_count: 0,
             disable_self_trade: global_settings.disable_self_trade,
             disable_market_order: global_settings.disable_market_order,
-            check_eddsa_signatue: global_settings.check_eddsa_signatue,
         };
         Ok(market)
     }
@@ -263,7 +261,6 @@ impl Market {
             finished_quote: Decimal::zero(),
             finished_fee: Decimal::zero(),
             post_only: order_input.post_only,
-            signature: order_input.signature,
         };
         let order = self.execute_order(sequencer, &mut balance_manager, &mut persistor, order, &quote_limit);
         Ok(order)
@@ -788,7 +785,6 @@ mod tests {
                         business_id: seq_id,
                         change: amount,
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -832,7 +828,6 @@ mod tests {
                 maker_fee: dec!(0),
                 market: market.name.to_string(),
                 post_only: false,
-                signature: [0; 64],
             };
             market.put_order(sequencer, balance_manager.into(), &mut persistor, order).unwrap();
         }
@@ -862,7 +857,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: false,
-            signature: [0; 64],
         };
         let ask_order = market
             .put_order(sequencer, balance_manager.into(), &mut persistor, ask_order_input)
@@ -882,7 +876,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: false,
-            signature: [0; 64],
         };
         let bid_order = market
             .put_order(sequencer, balance_manager.into(), &mut persistor, bid_order_input)
@@ -964,7 +957,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: true,
-            signature: [0; 64],
         };
         let ask_order = market
             .put_order(sequencer, balance_manager.into(), &mut persistor, ask_order_input)
@@ -985,7 +977,6 @@ mod tests {
             maker_fee: dec!(0.001),
             market: market.name.to_string(),
             post_only: true,
-            signature: [0; 64],
         };
         let bid_order = market
             .put_order(sequencer, balance_manager.into(), &mut persistor, bid_order_input)

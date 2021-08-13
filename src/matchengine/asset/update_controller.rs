@@ -21,7 +21,6 @@ pub struct BalanceUpdateParams {
     pub business_id: u64,
     pub change: Decimal,
     pub detail: serde_json::Value,
-    pub signature: Vec<u8>,
 }
 
 pub enum BalanceUpdateType {
@@ -113,7 +112,6 @@ impl BalanceUpdateController {
                 balance_available: new_balance,
                 balance_frozen,
                 detail: params.detail.to_string(),
-                signature: params.signature,
             };
             persistor.put_balance(&balance_history);
             match params.typ {

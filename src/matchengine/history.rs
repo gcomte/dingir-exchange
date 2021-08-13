@@ -81,7 +81,6 @@ impl<'r> From<&'r market::Order> for models::OrderHistory {
             finished_quote: order.finished_quote,
             finished_fee: order.finished_fee,
             post_only: order.post_only,
-            signature: order.signature.to_vec(),
         }
     }
 }
