@@ -133,7 +133,7 @@ impl From<InternalTx> for TransferMessage {
             time: FTimestamp::from(&tx.time).into(),
             user_from: tx.user_from as u32,
             user_to: tx.user_to as u32,
-            asset: tx.asset,
+            asset: tx.asset.to_string(),
             amount: tx.amount.to_string(),
         }
     }
