@@ -8,7 +8,6 @@ use anyhow::Result;
 
 type BalanceWriter = DatabaseWriter<models::BalanceHistory>;
 type TransferWriter = DatabaseWriter<models::InternalTx>;
-type UserWriter = DatabaseWriter<models::AccountDesc>;
 type OrderWriter = DatabaseWriter<models::OrderHistory>;
 type TradeWriter = DatabaseWriter<models::UserTrade>;
 
@@ -17,7 +16,6 @@ pub trait HistoryWriter: Sync + Send {
     //TODO: don't take the ownership?
     fn append_balance_history(&mut self, data: models::BalanceHistory);
     fn append_internal_transfer(&mut self, data: models::InternalTx);
-    fn append_user(&mut self, user: models::AccountDesc);
     fn append_order_history(&mut self, order: &market::Order);
     fn append_expired_order_history(&mut self, _order: &market::Order);
     fn append_pair_user_trade(&mut self, trade: &Trade);
@@ -27,7 +25,6 @@ pub struct DummyHistoryWriter;
 impl HistoryWriter for DummyHistoryWriter {
     fn append_balance_history(&mut self, _data: models::BalanceHistory) {}
     fn append_internal_transfer(&mut self, _data: models::InternalTx) {}
-    fn append_user(&mut self, _user: models::AccountDesc) {}
     fn append_order_history(&mut self, _order: &market::Order) {}
     fn append_expired_order_history(&mut self, _order: &market::Order) {}
     fn append_pair_user_trade(&mut self, _trade: &Trade) {}
@@ -39,7 +36,6 @@ impl HistoryWriter for DummyHistoryWriter {
 pub struct DatabaseHistoryWriter {
     pub balance_writer: BalanceWriter,
     pub transfer_writer: TransferWriter,
-    pub user_writer: UserWriter,
     pub trade_writer: TradeWriter,
     pub order_writer: OrderWriter,
 }
@@ -49,7 +45,6 @@ impl DatabaseHistoryWriter {
         Ok(DatabaseHistoryWriter {
             balance_writer: BalanceWriter::new(config).start_schedule(pool)?,
             transfer_writer: TransferWriter::new(config).start_schedule(pool)?,
-            user_writer: UserWriter::new(config).start_schedule(pool)?,
             trade_writer: TradeWriter::new(config).start_schedule(pool)?,
             order_writer: OrderWriter::new(config).start_schedule(pool)?,
         })
@@ -94,9 +89,6 @@ impl HistoryWriter for DatabaseHistoryWriter {
     }
     fn append_internal_transfer(&mut self, data: models::InternalTx) {
         self.transfer_writer.append(data).ok();
-    }
-    fn append_user(&mut self, user: models::AccountDesc) {
-        self.user_writer.append(user).ok();
     }
     fn append_order_history(&mut self, order: &market::Order) {
         self.order_writer.append(order.into()).ok();

@@ -2,7 +2,6 @@ use crate::asset::update_controller::{BalanceUpdateParams, BalanceUpdateType};
 use crate::asset::{BalanceManager, BalanceType, BalanceUpdateController};
 use crate::config::{self};
 use crate::database::{DatabaseWriterConfig, OperationLogSender};
-use crate::eth_guard::{EthLogGuard, EthLogMetadata};
 use crate::history::DatabaseHistoryWriter;
 use crate::market::{self, Order, OrderInput};
 use crate::message::{FullOrderMessageManager, SimpleMessageManager};
@@ -11,7 +10,6 @@ use crate::persist::{CompositePersistor, DBBasedPersistor, DummyPersistor, FileB
 use crate::sequencer::Sequencer;
 use crate::storage::config::MarketConfigs;
 use crate::types::{ConnectionType, DbType, SimpleResult};
-use crate::user_manager::{self, UserManager};
 use crate::utils::{self, FTimestamp};
 
 use anyhow::{anyhow, bail};
@@ -87,9 +85,7 @@ pub struct Controller {
     //<LogHandlerType> where LogHandlerType: OperationLogConsumer + Send {
     pub settings: config::Settings,
     pub sequencer: Sequencer,
-    pub user_manager: UserManager,
     pub balance_manager: BalanceManager,
-    pub eth_guard: EthLogGuard,
     //    pub asset_manager: AssetManager,
     pub update_controller: BalanceUpdateController,
     pub markets: HashMap<String, market::Market>,
@@ -103,7 +99,6 @@ pub struct Controller {
 }
 
 const ORDER_LIST_MAX_LEN: usize = 100;
-const OPERATION_REGISTER_USER: &str = "register_user";
 const OPERATION_BALANCE_UPDATE: &str = "balance_update";
 const OPERATION_ORDER_CANCEL: &str = "order_cancel";
 const OPERATION_ORDER_CANCEL_ALL: &str = "order_cancel_all";
@@ -114,7 +109,6 @@ const OPERATION_TRANSFER: &str = "transfer";
 pub fn create_controller(cfgs: (config::Settings, MarketConfigs)) -> Controller {
     let settings = cfgs.0;
     let main_pool = sqlx::Pool::<DbType>::connect_lazy(&settings.db_log).unwrap();
-    let user_manager = UserManager::new(); // load from db later
     let balance_manager = BalanceManager::new(&settings.assets).unwrap();
 
     let update_controller = BalanceUpdateController::new();
@@ -138,9 +132,7 @@ pub fn create_controller(cfgs: (config::Settings, MarketConfigs)) -> Controller 
         settings,
         sequencer,
         //            asset_manager,
-        user_manager,
         balance_manager,
-        eth_guard: EthLogGuard::new(0),
         update_controller,
         markets,
         log_handler: Box::<OperationLogSender>::new(log_handler),
@@ -344,70 +336,10 @@ impl Controller {
         self.persistor.service_available()
     }
 
-    pub fn register_user(&mut self, real: bool, mut req: UserInfo) -> std::result::Result<UserInfo, Status> {
-        if !self.check_service_available() {
-            return Err(Status::unavailable(""));
-        }
-
-        let meta: Option<EthLogMetadata> = req.log_metadata.as_ref().map(|meta| meta.into());
-        // ignore processed request
-        if !self.eth_guard.accept_optional(&meta) {
-            return Ok(req);
-        }
-
-        let last_user_id = self.user_manager.users.len() as u32;
-        req.user_id = last_user_id + 1;
-        // TODO: check user_id
-        // if last_user_id + 1 != req.user_id {
-        //     return Err(Status::invalid_argument("inconsist user_id"));
-        // }
-
-        let l1_address = req.l1_address.to_lowercase();
-        let l2_pubkey = req.l2_pubkey.to_lowercase();
-
-        self.user_manager.users.insert(
-            req.user_id,
-            user_manager::UserInfo {
-                l1_address: l1_address.clone(),
-                l2_pubkey: l2_pubkey.clone(),
-            },
-        );
-
-        if real {
-            let mut detail: serde_json::Value = json!({});
-            detail["id"] = serde_json::Value::from(req.user_id);
-            self.persistor.register_user(models::AccountDesc {
-                id: req.user_id as i32,
-                l1_address: l1_address.clone(),
-                l2_pubkey: l2_pubkey.clone(),
-            });
-        }
-
-        if real {
-            self.append_operation_log(OPERATION_REGISTER_USER, &req);
-        }
-
-        self.eth_guard.update_optional(meta);
-
-        Ok(UserInfo {
-            user_id: req.user_id,
-            l1_address,
-            l2_pubkey,
-            log_metadata: req.log_metadata,
-        })
-    }
-
     pub fn update_balance(&mut self, real: bool, req: BalanceUpdateRequest) -> std::result::Result<BalanceUpdateResponse, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
-
-        let meta: Option<EthLogMetadata> = req.log_metadata.as_ref().map(|meta| meta.into());
-        // ignore processed request
-        if !self.eth_guard.accept_optional(&meta) {
-            return Ok(BalanceUpdateResponse::default());
-        }
-
         if !self.balance_manager.asset_manager.asset_exist(&req.asset) {
             return Err(Status::invalid_argument("invalid asset"));
         }
@@ -447,9 +379,6 @@ impl Controller {
         if real {
             self.append_operation_log(OPERATION_BALANCE_UPDATE, &req);
         }
-
-        self.eth_guard.update_optional(meta);
-
         Ok(BalanceUpdateResponse::default())
     }
 
@@ -569,7 +498,6 @@ impl Controller {
         //self.log_handler.reset();
         self.update_controller.reset();
         self.balance_manager.reset();
-        self.user_manager.reset();
         //Ok(())
     }
 
@@ -623,9 +551,6 @@ impl Controller {
 
         let from_user_id = req.from;
         let to_user_id = req.to;
-        if !self.user_manager.users.contains_key(&to_user_id) {
-            return Err(Status::invalid_argument("invalid to_user"));
-        }
 
         let balance_manager = &self.balance_manager;
         let balance_from = balance_manager.get(from_user_id, BalanceType::AVAILABLE, asset_id);
@@ -806,9 +731,6 @@ impl Controller {
             }
             OPERATION_TRANSFER => {
                 self.transfer(false, serde_json::from_str(params)?)?;
-            }
-            OPERATION_REGISTER_USER => {
-                self.register_user(false, serde_json::from_str(params)?)?;
             }
             _ => bail!("invalid operation {}", method),
         }

@@ -11,7 +11,6 @@ pub type TimestampDbType = NaiveDateTime;
 pub mod tablenames {
     pub const ASSET: &str = "asset";
     pub const MARKET: &str = "market";
-    pub const ACCOUNT: &str = "account";
     pub const BALANCEHISTORY: &str = "balance_history";
     pub const ORDERHISTORY: &str = "order_history";
     pub const USERTRADE: &str = "user_trade";
@@ -46,13 +45,6 @@ pub struct MarketDesc {
     pub precision_fee: i16,
     pub min_amount: DecimalDbType,
     pub market_name: Option<String>,
-}
-
-#[derive(sqlx::FromRow, Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
-pub struct AccountDesc {
-    pub id: i32, // TODO: i32 or i64?
-    pub l1_address: String,
-    pub l2_pubkey: String,
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]

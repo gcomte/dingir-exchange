@@ -1,5 +1,5 @@
 use crate::market::Order;
-pub use crate::models::{AccountDesc, BalanceHistory, InternalTx};
+pub use crate::models::{BalanceHistory, InternalTx};
 use crate::types::OrderEventType;
 
 use crate::utils::FTimestamp;
@@ -13,23 +13,6 @@ pub mod producer;
 pub use producer::{
     BALANCES_TOPIC, DEPOSITS_TOPIC, INTERNALTX_TOPIC, ORDERS_TOPIC, TRADES_TOPIC, UNIFY_TOPIC, USER_TOPIC, WITHDRAWS_TOPIC,
 };
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct UserMessage {
-    pub user_id: u32,
-    pub l1_address: String,
-    pub l2_pubkey: String,
-}
-
-impl From<AccountDesc> for UserMessage {
-    fn from(user: AccountDesc) -> Self {
-        Self {
-            user_id: user.id as u32,
-            l1_address: user.l1_address,
-            l2_pubkey: user.l2_pubkey,
-        }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BalanceMessage {
@@ -177,7 +160,6 @@ pub trait MessageManager: Sync + Send {
     fn push_deposit_message(&mut self, balance: &DepositMessage);
     fn push_withdraw_message(&mut self, balance: &WithdrawMessage);
     fn push_transfer_message(&mut self, tx: &TransferMessage);
-    fn push_user_message(&mut self, user: &UserMessage);
 }
 
 pub struct RdProducerStub<T> {
@@ -261,10 +243,6 @@ impl<T: producer::MessageScheme> MessageManager for RdProducerStub<T> {
         let message = serde_json::to_string(&tx).unwrap();
         self.push_message_and_topic(message, INTERNALTX_TOPIC)
     }
-    fn push_user_message(&mut self, user: &UserMessage) {
-        let message = serde_json::to_string(&user).unwrap();
-        self.push_message_and_topic(message, USER_TOPIC)
-    }
 }
 
 pub type SimpleMessageManager = RdProducerStub<producer::SimpleMessageScheme>;
@@ -285,7 +263,6 @@ pub enum Message {
     OrderMessage(Box<OrderMessage>),
     TradeMessage(Box<Trade>),
     TransferMessage(Box<TransferMessage>),
-    UserMessage(Box<UserMessage>),
     WithdrawMessage(Box<BalanceMessage>),
 }
 

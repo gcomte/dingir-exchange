@@ -4,15 +4,12 @@ use dingir_exchange::restapi::personal_history::{my_internal_txs, my_orders};
 use dingir_exchange::restapi::public_history::{order_trades, recent_trades};
 use dingir_exchange::restapi::state::{AppCache, AppState};
 use dingir_exchange::restapi::tradingview::{chart_config, history, search_symbols, symbols, ticker, unix_timestamp};
-use dingir_exchange::restapi::user::get_user;
 use fluidex_common::non_blocking_tracing;
 use paperclip::actix::web::{self, HttpResponse};
 use paperclip::actix::{api_v2_operation, OpenApiExt};
 use sqlx::postgres::Postgres;
 use sqlx::Pool;
-use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::Mutex;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -38,7 +35,6 @@ async fn main() -> std::io::Result<()> {
     };
 
     let user_map = web::Data::new(AppState {
-        user_addr_map: Mutex::new(HashMap::new()),
         manage_channel,
         db: Pool::<Postgres>::connect(&db_url).await.unwrap(),
         config,
@@ -54,7 +50,6 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/restapi")
                     .route("/ping", web::get().to(ping))
-                    .route("/user/{l1addr_or_l2pubkey}", web::get().to(get_user))
                     .route("/recenttrades/{market}", web::get().to(recent_trades))
                     .route("/ordertrades/{market}/{order_id}", web::get().to(order_trades))
                     .route("/closedorders/{market}/{user_id}", web::get().to(my_orders))
