@@ -1,7 +1,7 @@
 use crate::history::HistoryWriter;
 use crate::matchengine::market::{Order, Trade};
 use crate::message::{self, MessageManager, OrderMessage};
-pub use crate::models::{AccountDesc, BalanceHistory, InternalTx};
+pub use crate::models::{BalanceHistory, InternalTx};
 use crate::types::OrderEventType;
 
 ///////////////////////////// PersistExector interface ////////////////////////////
@@ -23,7 +23,6 @@ pub trait PersistExector: Send + Sync {
     fn put_transfer(&mut self, tx: InternalTx);
     fn put_order(&mut self, order: &Order, at_step: OrderEventType);
     fn put_trade(&mut self, trade: &Trade);
-    fn register_user(&mut self, user: AccountDesc);
 }
 
 impl PersistExector for Box<dyn PersistExector + '_> {
@@ -50,9 +49,6 @@ impl PersistExector for Box<dyn PersistExector + '_> {
     }
     fn put_trade(&mut self, trade: &Trade) {
         self.as_mut().put_trade(trade)
-    }
-    fn register_user(&mut self, user: AccountDesc) {
-        self.as_mut().register_user(user)
     }
 }
 
@@ -81,9 +77,6 @@ impl PersistExector for &mut Box<dyn PersistExector + '_> {
     fn put_trade(&mut self, trade: &Trade) {
         self.as_mut().put_trade(trade)
     }
-    fn register_user(&mut self, user: AccountDesc) {
-        self.as_mut().register_user(user)
-    }
 }
 
 ///////////////////////////// DummyPersistor  ////////////////////////////
@@ -110,7 +103,6 @@ impl PersistExector for DummyPersistor {
     fn put_transfer(&mut self, _tx: InternalTx) {}
     fn put_order(&mut self, _order: &Order, _as_step: OrderEventType) {}
     fn put_trade(&mut self, _trade: &Trade) {}
-    fn register_user(&mut self, _user: AccountDesc) {}
 }
 
 impl PersistExector for &mut DummyPersistor {
@@ -123,7 +115,6 @@ impl PersistExector for &mut DummyPersistor {
     fn put_transfer(&mut self, _tx: InternalTx) {}
     fn put_order(&mut self, _order: &Order, _as_step: OrderEventType) {}
     fn put_trade(&mut self, _trade: &Trade) {}
-    fn register_user(&mut self, _user: AccountDesc) {}
 }
 
 ///////////////////////////// MemBasedPersistor ////////////////////////////
@@ -157,9 +148,6 @@ impl PersistExector for MemBasedPersistor {
     }
     fn put_transfer(&mut self, tx: InternalTx) {
         self.messages.push(message::Message::TransferMessage(Box::new(tx.into())));
-    }
-    fn register_user(&mut self, user: AccountDesc) {
-        self.messages.push(message::Message::UserMessage(Box::new(user.into())));
     }
 }
 
@@ -205,10 +193,6 @@ impl PersistExector for FileBasedPersistor {
         let msg = message::Message::TransferMessage(Box::new(tx.into()));
         self.write_msg(msg);
     }
-    fn register_user(&mut self, user: AccountDesc) {
-        let msg = message::Message::UserMessage(Box::new(user.into()));
-        self.write_msg(msg);
-    }
 }
 
 ///////////////////////////// MessengerBasedPersistor  ////////////////////////////
@@ -248,9 +232,6 @@ impl PersistExector for MessengerBasedPersistor {
     }
     fn put_trade(&mut self, trade: &Trade) {
         self.inner.push_trade_message(trade);
-    }
-    fn register_user(&mut self, user: AccountDesc) {
-        self.inner.push_user_message(&user.into());
     }
 }
 
@@ -297,9 +278,6 @@ impl PersistExector for DBBasedPersistor {
     }
     fn put_trade(&mut self, trade: &Trade) {
         self.inner.append_pair_user_trade(trade);
-    }
-    fn register_user(&mut self, user: AccountDesc) {
-        self.inner.append_user(user);
     }
 }
 
@@ -353,11 +331,6 @@ impl PersistExector for CompositePersistor {
     fn put_trade(&mut self, trade: &Trade) {
         for p in &mut self.persistors {
             p.put_trade(trade);
-        }
-    }
-    fn register_user(&mut self, user: AccountDesc) {
-        for p in &mut self.persistors {
-            p.register_user(user.clone());
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::models::tablenames::{ACCOUNT, INTERNALTX, ORDERHISTORY};
+use crate::models::tablenames::{INTERNALTX, ORDERHISTORY};
 use crate::models::{DateTimeMilliseconds, DecimalDbType, OrderHistory, TimestampDbType};
 use crate::restapi::errors::RpcError;
 use crate::restapi::state::AppState;
@@ -148,12 +148,8 @@ select i.time       as time,
        i.asset      as asset,
        i.amount     as amount
 from {} i
-inner join {} af on af.id = i.user_from
-inner join {} at on at.id = i.user_to
 where "#,
-        INTERNALTX,
-        ACCOUNT,
-        ACCOUNT
+        INTERNALTX
     );
     let (user_condition, args_n) = match query.side {
         Side::From => ("i.user_from = $1", 1),
