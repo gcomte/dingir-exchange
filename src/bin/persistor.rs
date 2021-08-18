@@ -63,8 +63,6 @@ fn main() {
 
         let persistor_transfer: DatabaseWriter<models::InternalTx> = DatabaseWriter::new(&write_config).start_schedule(&pool).unwrap();
 
-        let persistor_user: DatabaseWriter<models::AccountDesc> = DatabaseWriter::new(&write_config).start_schedule(&pool).unwrap();
-
         let trade_cfg = TopicConfig::<message::Trade>::new(message::TRADES_TOPIC)
             .persist_to(&persistor_kline)
             .persist_to(&persistor_trade)
@@ -80,14 +78,11 @@ fn main() {
 
         let internaltx_cfg = TopicConfig::<message::TransferMessage>::new(message::INTERNALTX_TOPIC).persist_to(&persistor_transfer);
 
-        let user_cfg = TopicConfig::<message::UserMessage>::new(message::USER_TOPIC).persist_to(&persistor_user);
-
         let auto_commit = vec![
             trade_cfg.auto_commit_start(consumer.clone()),
             order_cfg.auto_commit_start(consumer.clone()),
             balance_cfg.auto_commit_start(consumer.clone()),
             internaltx_cfg.auto_commit_start(consumer.clone()),
-            user_cfg.auto_commit_start(consumer.clone()),
         ];
         let consumer = consumer.as_ref();
 
@@ -97,7 +92,6 @@ fn main() {
                 .add_topic_config(&order_cfg).unwrap()
                 .add_topic_config(&balance_cfg).unwrap()
                 .add_topic_config(&internaltx_cfg).unwrap()
-                .add_topic_config(&user_cfg).unwrap()
 //                .add_topic(message::TRADES_TOPIC, MsgDataPersistor::new(&persistor).handle_message::<message::Trade>())
                 ;
 
@@ -119,7 +113,6 @@ fn main() {
             persistor_order.finish(),
             persistor_balance.finish(),
             persistor_transfer.finish(),
-            persistor_user.finish(),
         )
         .expect("all persistor should success finish");
         let final_commits: Vec<Pin<Box<dyn std::future::Future<Output = ()> + Send>>> = auto_commit

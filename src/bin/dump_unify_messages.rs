@@ -20,7 +20,6 @@ fn get_msg_tag_from_topic(t: &str) -> Option<&'static str> {
         "deposits" => "DepositMessage",
         "internaltransfer" => "TransferMessage",
         "orders" => "OrderMessage",
-        "registeruser" => "UserMessage",
         "trades" => "TradeMessage",
         "withdraws" => "WithdrawMessage",
         _ => {
