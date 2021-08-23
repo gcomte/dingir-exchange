@@ -20,45 +20,12 @@ import { depositAssets, getPriceOfCoin } from "../exchange_helper";
 //const VERBOSE = false;
 console.log({ VERBOSE });
 
-async function initUser(): Promise<number> {
-  const mnemonic1 = "split logic consider degree smile field term style opera dad believe indoor item type beyond";
-  const mnemonic2 =
-    "camp awful sand include refuse cash reveal mystery pupil salad length plunge square admit vocal draft found side same clock hurt length say figure";
-  const mnemonic3 =
-    "sound select report rug run cave provide index grief foster bar someone garage donate nominee crew once oil sausage flight tail holiday style afford";
-  const acc = Account.fromMnemonic(mnemonic3);
-  //console.log('acc is', acc);
-  const restClient = defaultRESTClient;
-  let userInfo = await restClient.get_user_by_addr(acc.ethAddr);
-  if (userInfo == null) {
-    // register
-    console.log("register new user");
-    let resp = await defaultGrpcClient.registerUser({
-      user_id: 0, // discard in server side
-      l1_address: acc.ethAddr,
-      l2_pubkey: acc.bjjPubKey,
-    });
-    const t = Date.now();
-    console.log("register resp", resp);
-    await sleep(2000); // FIXME
-    userInfo = await restClient.get_user_by_addr(acc.ethAddr);
-    await sleep(2000); // FIXME
-    await depositAssets({ USDT: "10000.0" }, userInfo.id);
-  } else {
-    console.log("user", "already registered");
-  }
-  console.log("user", userInfo);
-
-  defaultClient.addAccount(userInfo.id, acc);
-  return userInfo.id;
-}
-
 const market = "ETH_USDT";
 const baseCoin = "ETH";
 const quoteCoin = "USDT";
 
 async function main() {
-  const user_id = await initUser();
+  const user_id = 3; // dummy user id
 
   await defaultClient.connect();
 
@@ -87,7 +54,7 @@ async function main() {
         const t = Date.now() / 1000; // ms
         console.log("stats of", bot.name);
         console.log("orders:");
-        console.log(await defaultClient.orderQuery(user_id, market));
+        console.log(await defaultClient.orderQuery(user, market));
         console.log("balances:");
         await printBalance(user_id, baseCoin, quoteCoin, market);
         let { totalValue } = await totalBalance(user_id, baseCoin, quoteCoin, market);
@@ -111,7 +78,7 @@ async function main() {
       const balance = await defaultClient.balanceQuery(user_id);
       const { reset, orders } = await bot.tick(balance, oldOrders);
 
-      await executeOrders(defaultClient, market, user_id, reset, orders, 0.001, false);
+      await executeOrders(defaultClient, market, user, reset, orders, 0.001, false);
     } catch (e) {
       console.log("err", e);
     }

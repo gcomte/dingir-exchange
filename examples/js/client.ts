@@ -1,6 +1,6 @@
 import * as caller from "@eeston/grpc-caller";
 import Decimal from "decimal.js";
-import { Account, OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
+import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
 import { ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "./config";
 import { assertDecimalEqual, decimalEqual } from "./util";
 
@@ -21,14 +21,9 @@ class Client {
   client: any;
   markets: Map<string, any> = new Map();
   assets: Map<string, any> = new Map();
-  accounts: Map<number, Account> = new Map();
   constructor(server = process.env.GRPC_SERVER || "localhost:50051") {
     console.log("using grpc", server);
     this.client = caller(`${server}`, { file, load }, "Matchengine");
-  }
-
-  addAccount(account_id: number, acc: Account) {
-    this.accounts.set(account_id, acc);
   }
 
   async connect() {
@@ -69,7 +64,6 @@ class Client {
       business_id,
       delta,
       detail: JSON.stringify(detail),
-      signature: "",
     });
   }
   roundOrderInput(market, amount, price) {
@@ -175,17 +169,14 @@ class Client {
   }
 
   createTransferTx(from, to, asset, delta, memo) {
-    let user_id = from;
-    if (this.accounts.has(user_id)) {
-      let nonce = 0; // use 0 as nonce for now
-      let tx = new TransferTx({
-        token_id: this.assets.get(asset).inner_id,
-        amount: delta,
-        from,
-        from_nonce: nonce,
-        to,
-      });
-    }
+    let nonce = 0; // use 0 as nonce for now
+    let tx = new TransferTx({
+      token_id: this.assets.get(asset).inner_id,
+      amount: delta,
+      from,
+      from_nonce: nonce,
+      to,
+    });
     return {
       from,
       to,
@@ -197,7 +188,6 @@ class Client {
 
   createWithdrawTx(account_id, asset, business, business_id, delta, detail) {
     let signature = "";
-    if (this.accounts.has(account_id)) {
       let tx = new WithdrawTx({
         account_id,
         token_id: this.assets.get(asset).inner_id,
@@ -205,8 +195,6 @@ class Client {
         nonce: 0,
         old_balance: 0, // TODO: Update `old_balance` with precision.
       });
-      signature = this.accounts.get(account_id).signHashPacked(tx.hash());
-    }
     return {
       user_id: account_id,
       asset,
