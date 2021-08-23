@@ -9,8 +9,6 @@ import {
   depositAssets,
   getPriceOfCoin
 } from "./util";
-import { Account } from "fluidex.js";
-import { getTestAccount } from "./accounts";
 import { strict as assert } from "assert";
 
 const verbose = true;
@@ -26,24 +24,7 @@ async function initClient() {
   await client.connect();
   markets = Array.from(client.markets.keys());
 }
-async function loadAccounts() {
-  for (const user_id of botsIds) {
-    let acc = Account.fromMnemonic(getTestAccount(user_id).mnemonic);
-    console.log("acc", user_id, acc);
-    client.addAccount(user_id, acc);
-  }
-}
-async function registerAccounts() {
-  for (const user_id of botsIds) {
-    // TODO: clean codes here
-    let acc = Account.fromMnemonic(getTestAccount(user_id).mnemonic);
-    await client.registerUser({
-      user_id,
-      l1_address: acc.ethAddr,
-      l2_pubkey: acc.bjjPubKey
-    });
-  }
-}
+
 async function initAssets() {
   for (const user_id of botsIds) {
     await depositAssets({ USDT: "500000.0" }, user_id);
@@ -177,12 +158,10 @@ async function run() {
 }
 async function main() {
   const reset = true;
-  await loadAccounts();
   await initClient();
   //await cancelAll();
   if (reset) {
     await client.debugReset();
-    await registerAccounts();
     await initAssets();
     await transferTest();
     await withdrawTest();

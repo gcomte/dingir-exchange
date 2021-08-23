@@ -1,8 +1,6 @@
 import axios from "axios";
-import { Account } from "fluidex.js";
 
 import { defaultClient as client } from "./client";
-import { getTestAccount } from "./accounts";
 import { fee, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT } from "./config";
 import { depositAssets } from "./util";
 import { strict as assert } from "assert";
@@ -10,18 +8,6 @@ import { strict as assert } from "assert";
 const userId = 1;
 const isCI = !!process.env.GITHUB_ACTIONS;
 const server = process.env.API_ENDPOINT || "0.0.0.0:8765";
-
-async function initAccounts() {
-  await client.debugReset();
-  await client.connect();
-  let acc = Account.fromMnemonic(getTestAccount(userId).mnemonic);
-  client.addAccount(userId, acc);
-  await client.client.RegisterUser({
-    userId,
-    l1_address: acc.ethAddr,
-    l2_pubkey: acc.bjjPubKey
-  });
-}
 
 async function setupAsset() {
   await depositAssets({ USDT: "100.0", ETH: "50.0" }, userId);
@@ -76,7 +62,6 @@ async function orderTest() {
 async function main() {
   try {
     console.log("ci mode:", isCI);
-    await initAccounts();
     await setupAsset();
     await orderTest();
   } catch (error) {

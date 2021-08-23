@@ -16,17 +16,6 @@ async function setupAsset() {
   decimalEqual(balance2.available, "0");
 }
 
-async function registerUsers() {
-  for (var i = 1; i <= anotherUserId; i++) {
-    await client.registerUser({
-      id: i,
-      l1_address: "l1_address_" + i,
-      l2_pubkey: "l2_pubkey_" + i
-    });
-    console.log("register user", i);
-  }
-}
-
 // Test failure with argument delta of value zero
 async function failureWithZeroDeltaTest() {
   const res = await client.transfer(userId, anotherUserId, "ETH", 0);
@@ -88,7 +77,6 @@ async function listTxs() {
 
 async function simpleTest() {
   await setupAsset();
-  await registerUsers();
   await failureWithZeroDeltaTest();
   await failureWithInsufficientFromBalanceTest();
   await successTransferTest();

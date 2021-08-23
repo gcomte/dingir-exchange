@@ -1,6 +1,6 @@
 import * as caller from "@eeston/grpc-caller";
 import Decimal from "decimal.js";
-import { Account, OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
+import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
 import {
   ORDER_SIDE_BID,
   ORDER_SIDE_ASK,
@@ -25,14 +25,9 @@ class Client {
   client: any;
   markets: Map<string, any> = new Map();
   assets: Map<string, any> = new Map();
-  accounts: Map<number, Account> = new Map();
   constructor(server = process.env.GRPC_SERVER || "localhost:50051") {
     console.log("using grpc", server);
     this.client = caller(`${server}`, { file, load }, "Matchengine");
-  }
-
-  addAccount(account_id: number, acc: Account) {
-    this.accounts.set(account_id, acc);
   }
 
   async connect() {
@@ -75,8 +70,7 @@ class Client {
       business,
       business_id,
       delta,
-      detail: JSON.stringify(detail),
-      signature: ""
+      detail: JSON.stringify(detail)
     });
   }
   roundOrderInput(market, amount, price) {
@@ -106,7 +100,7 @@ class Client {
     let amountRounded = Number(amount).toFixed(marketInfo.amount_precision);
     let priceRounded = Number(price).toFixed(marketInfo.price_precision);
 
-    if (this.accounts.has(user_id) && order_type == ORDER_TYPE_LIMIT) {
+    if (order_type == ORDER_TYPE_LIMIT) {
       let tokenBuy, tokenSell, totalSell, totalBuy;
       let baseTokenInfo = this.assets.get(marketInfo.base);
       let quoteTokenInfo = this.assets.get(marketInfo.quote);
@@ -251,17 +245,14 @@ class Client {
   }
 
   createTransferTx(from, to, asset, delta, memo) {
-    let user_id = from;
-    if (this.accounts.has(user_id)) {
-      let nonce = 0; // use 0 as nonce for now
-      let tx = new TransferTx({
-        token_id: this.assets.get(asset).inner_id,
-        amount: delta,
-        from,
-        from_nonce: nonce,
-        to
-      });
-    }
+    let nonce = 0; // use 0 as nonce for now
+    let tx = new TransferTx({
+      token_id: this.assets.get(asset).inner_id,
+      amount: delta,
+      from,
+      from_nonce: nonce,
+      to
+    });
     return {
       from,
       to,
@@ -273,7 +264,6 @@ class Client {
 
   createWithdrawTx(account_id, asset, business, business_id, delta, detail) {
     let signature = "";
-    if (this.accounts.has(account_id)) {
       let tx = new WithdrawTx({
         account_id,
         token_id: this.assets.get(asset).inner_id,
@@ -281,8 +271,6 @@ class Client {
         nonce: 0,
         old_balance: 0 // TODO: Update `old_balance` with precision.
       });
-      signature = this.accounts.get(account_id).signHashPacked(tx.hash());
-    }
     return {
       user_id: account_id,
       asset,
@@ -290,7 +278,6 @@ class Client {
       business_id,
       delta: -delta,
       detail: JSON.stringify(detail),
-      signature: signature
     };
   }
 
@@ -317,14 +304,6 @@ class Client {
 
   async debugReload() {
     return await this.client.DebugReload({});
-  }
-
-  async registerUser(user) {
-    return await this.client.RegisterUser({
-      user_id: user.id || user.user_id, // legacy reasons
-      l1_address: user.l1_address,
-      l2_pubkey: user.l2_pubkey
-    });
   }
 }
 
