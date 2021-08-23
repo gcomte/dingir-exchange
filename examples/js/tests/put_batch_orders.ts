@@ -1,35 +1,14 @@
 import axios from "axios";
-import { Account } from "fluidex.js";
 import { defaultClient as client } from "../client";
 import { depositAssets } from "../exchange_helper";
 import { fee, ORDER_SIDE_BID, ORDER_TYPE_LIMIT } from "../config";
-import { getTestAccount } from "../accounts";
 import { strict as assert } from "assert";
 
 const botsIds = [1, 2, 3, 4, 5];
 const apiServer = process.env.API_ENDPOINT || "0.0.0.0:8765";
 
-async function loadAccounts() {
-  for (const user_id of botsIds) {
-    let acc = Account.fromMnemonic(getTestAccount(user_id).mnemonic);
-    console.log("acc", user_id, acc);
-    client.addAccount(user_id, acc);
-  }
-}
-
 async function initClient() {
   await client.connect();
-}
-
-async function registerAccounts() {
-  for (const user_id of botsIds) {
-    let acc = Account.fromMnemonic(getTestAccount(user_id).mnemonic);
-    await client.client.RegisterUser({
-      user_id,
-      l1_address: acc.ethAddr,
-      l2_pubkey: acc.bjjPubKey,
-    });
-  }
 }
 
 async function initAssets() {
@@ -138,10 +117,8 @@ async function openOrderNum(userId) {
 
 async function main() {
   try {
-    await loadAccounts();
     await initClient();
     await client.debugReset();
-    await registerAccounts();
     await initAssets();
     await mainTest();
   } catch (error) {
