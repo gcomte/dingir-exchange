@@ -49,4 +49,4 @@ jobs:
             . \
       - name: Publish
         run: |-
-          docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
+          docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
