@@ -12,38 +12,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: install system depenencies
-        run: sudo apt install libpq-dev cmake gcc g++ postgresql-client-12 pkg-config libssl-dev musl-tools
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'true'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: Swatinem/rust-cache@v1
-      - name: install cross
-        run:  cargo install cross
-      - name: build executable
-        run:  RUSTFLAGS="-C link-arg=-static -C target-feature=+crt-static" cross build --bin matchengine --target x86_64-unknown-linux-musl --release
-      - uses: google-github-actions/setup-gcloud@94337306dda8180d967a56932ceb4ddcf01edae7
-        with:
-          service_account_key: ${{ secrets.GKE_SERVICE_TOKEN }}
-          project_id: bitraw-backend
-          # Configure docker to use the gcloud command-line tool as a credential helper
-      - run: |-
-          gcloud --quiet auth configure-docker
-      - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
-        with:
-          cluster_name: ${{ env.GKE_CLUSTER }}
-          location: ${{ env.GKE_ZONE }}
-          credentials: ${{ secrets.GKE_SERVICE_TOKEN }}
-      - name: Build container
-        run: |-
-          docker build \
-            --tag "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA" \
-            --build-arg GITHUB_SHA="$GITHUB_SHA" \
-            --build-arg GITHUB_REF="$GITHUB_REF" \
-            ./release \
-      - name: Publish
-        run: |-
-          docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
+      - name: show sys
+        run: uname -a
+      # - name: install system depenencies
+      #   run: sudo apt install libpq-dev cmake gcc g++ postgresql-client-12 pkg-config libssl-dev musl-tools
+      # - uses: actions/checkout@v2
+      #   with:
+      #     submodules: 'true'
+      # - uses: actions-rs/toolchain@v1
+      #   with:
+      #     toolchain: stable
+      # - uses: Swatinem/rust-cache@v1
+      # - name: install cross
+      #   run:  cargo install cross
+      # - name: build executable
+      #   run:  RUSTFLAGS="-C link-arg=-static -C target-feature=+crt-static" cross build --bin matchengine --target x86_64-unknown-linux-gnu --release
+      # - uses: google-github-actions/setup-gcloud@94337306dda8180d967a56932ceb4ddcf01edae7
+      #   with:
+      #     service_account_key: ${{ secrets.GKE_SERVICE_TOKEN }}
+      #     project_id: bitraw-backend
+      #     # Configure docker to use the gcloud command-line tool as a credential helper
+      # - run: |-
+      #     gcloud --quiet auth configure-docker
+      # - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
+      #   with:
+      #     cluster_name: ${{ env.GKE_CLUSTER }}
+      #     location: ${{ env.GKE_ZONE }}
+      #     credentials: ${{ secrets.GKE_SERVICE_TOKEN }}
+      # - name: Build container
+      #   run: |-
+      #     docker build \
+      #       --tag "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA" \
+      #       --build-arg GITHUB_SHA="$GITHUB_SHA" \
+      #       --build-arg GITHUB_REF="$GITHUB_REF" \
+      #       ./release \
+      # - name: Publish
+      #   run: |-
+      #     docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
