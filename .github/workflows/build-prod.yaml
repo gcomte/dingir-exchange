@@ -50,7 +50,12 @@ jobs:
       - name: Publish
         run: |-
           docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
+      - name: Set up yq
+        run: |-
+          sudo add-apt-repository ppa:rmescandon/yq
+          sudo apt install yq
       - name: Deploy
         run: |-
+          yq e -i '.spec.template.spec.containers[0].image = "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"' kubernetes/matchengine-deployment.yaml
           kubectl apply -f kubernetes/matchengine-deployment.yaml
           kubectl get services -o wide
