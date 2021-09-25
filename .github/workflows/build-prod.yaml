@@ -50,6 +50,8 @@ jobs:
       - name: Publish
         run: |-
           docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
-      # - name: Deploy
-      #   run: |-
-      #     kubectl apply -f 
+      - name: Deploy
+        run: |-
+          kubectl apply -f kubernetes/matchengine-deployment.yaml
+          kubectl rollout status deployment/$DEPLOYMENT_NAME
+          kubectl get services -o wide
