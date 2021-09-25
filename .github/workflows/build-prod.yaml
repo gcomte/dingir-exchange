@@ -47,6 +47,9 @@ jobs:
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
             --build-arg GITHUB_REF="$GITHUB_REF" \
             . \
-      - name: Publish
-        run: |-
-          docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
+      # - name: Publish
+      #   run: |-
+      #     docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
+      # - name: Deploy
+      #   run: |-
+      #     kubectl set image deployment dep1 dep1="gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
