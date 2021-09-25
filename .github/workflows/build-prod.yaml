@@ -4,7 +4,7 @@ on:
     branches:
       - ci-cd-workflow
 env:
-  GKE_CLUSTER: bitraw-cluster-1    # Add your cluster name here.
+  GKE_CLUSTER: bitraw-cluster    # Add your cluster name here.
   GKE_ZONE: us-central1-a   # Add your cluster zone here.
   DEPLOYMENT_NAME: gke-test # Add your deployment name here.
   IMAGE: dingir-matchengine
@@ -20,16 +20,14 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-unknown-linux-musl
+          target: x86_64-unknown-linux-gnu
           override: true
       - uses: Swatinem/rust-cache@v1
-      - name: install cross
-        run:  cargo install cross
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --bin matchengine --target x86_64-unknown-linux-musl --release
+          args: --bin matchengine --target x86_64-unknown-linux-gnu --release
       - uses: google-github-actions/setup-gcloud@94337306dda8180d967a56932ceb4ddcf01edae7
         with:
           service_account_key: ${{ secrets.GKE_SERVICE_TOKEN }}
