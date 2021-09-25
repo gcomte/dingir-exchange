@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: install system depenencies
-        run: sudo apt install libpq-dev cmake gcc g++ postgresql-client-12
+        run: sudo apt install libpq-dev cmake gcc g++ postgresql-client-12 pkg-config libssl-dev musl-tools
       - uses: actions/checkout@v2
         with:
           submodules: 'true'
