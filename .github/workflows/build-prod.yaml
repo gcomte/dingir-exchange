@@ -56,6 +56,6 @@ jobs:
           sudo apt install yq
       - name: Deploy
         run: |-
-          yq e -i '.spec.template.spec.containers[0].image = "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"' kubernetes/matchengine-deployment.yaml
+
+          REPO=gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/matchengine-deployment.yaml
           kubectl apply -f kubernetes/matchengine-deployment.yaml
-          kubectl get services -o wide
