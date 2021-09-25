@@ -27,7 +27,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --bin matchengine --target x86_64-unknown-linux-gnu --release
+          args: --target x86_64-unknown-linux-gnu --release
       - uses: google-github-actions/setup-gcloud@master
         with:
           service_account_key: ${{ secrets.GKE_SERVICE_TOKEN }}
@@ -40,13 +40,21 @@ jobs:
           cluster_name: ${{ env.GKE_CLUSTER }}
           location: ${{ env.GKE_ZONE }}
           credentials: ${{ secrets.GKE_SERVICE_TOKEN }}
-      - name: Build container
+      - name: Build containers
         run: |-
-          docker build \
+          docker build . \
             --tag "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA" \
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
             --build-arg GITHUB_REF="$GITHUB_REF" \
-            . \
+            -f Dockerfile \
+          docker build . --tag "gcr.io/bitraw-backend/$IMAGE-persistor:$GITHUB_SHA" \
+            --build-arg GITHUB_SHA="$GITHUB_SHA" \
+            --build-arg GITHUB_REF="$GITHUB_REF" \
+            -f Dockerfile.persistor \
+          docker build . --tag "gcr.io/bitraw-backend/$IMAGE-restapi:$GITHUB_SHA" \
+            --build-arg GITHUB_SHA="$GITHUB_SHA" \
+            --build-arg GITHUB_REF="$GITHUB_REF" \
+            -f Dockerfile.restapi \
       - name: Publish
         run: |-
           docker push "gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA"
@@ -56,6 +64,9 @@ jobs:
           sudo apt install yq
       - name: Deploy
         run: |-
-
           REPO=gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/matchengine-deployment.yaml
+          REPO=gcr.io/bitraw-backend/$IMAGE-persistor:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/persistor-deployment.yaml
+          REPO=gcr.io/bitraw-backend/$IMAGE-restapi:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/restapi-deployment.yaml
           kubectl apply -f kubernetes/matchengine-deployment.yaml
+          kubectl apply -f kubernetes/persistor-deployment.yaml
+          kubectl apply -f kubernetes/restapi-deployment.yaml
