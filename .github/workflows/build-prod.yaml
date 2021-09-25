@@ -35,7 +35,7 @@ jobs:
           # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |-
           gcloud --quiet auth configure-docker
-      - uses: google-github-actions/get-gke-credentials@master
+      - uses: google-github-actions/get-gke-credentials@main
         with:
           cluster_name: ${{ env.GKE_CLUSTER }}
           location: ${{ env.GKE_ZONE }}
