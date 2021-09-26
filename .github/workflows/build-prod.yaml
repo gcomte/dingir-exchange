@@ -65,9 +65,12 @@ jobs:
           sudo apt install yq
       - name: Deploy
         run: |-
+          kubectl delete configmap envoy-files-config -n default
+          kubectl create configmap envoy-files-config --from-file=orchestra/proto/exchange/matchengine.pb --from-file=kubernetes/envoy.yaml  -n default
           REPO=gcr.io/bitraw-backend/$IMAGE:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/matchengine-deployment.yaml
           REPO=gcr.io/bitraw-backend/$IMAGE-persistor:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/persistor-deployment.yaml
           REPO=gcr.io/bitraw-backend/$IMAGE-restapi:$GITHUB_SHA yq e -i '.spec.template.spec.containers[0].image = strenv(REPO)' kubernetes/restapi-deployment.yaml
           kubectl apply -f kubernetes/matchengine-deployment.yaml
           kubectl apply -f kubernetes/persistor-deployment.yaml
           kubectl apply -f kubernetes/restapi-deployment.yaml
+          kubectl rollout restart deployment exchange-envoy
