@@ -112,7 +112,7 @@ impl Default for Settings {
             assets: Vec::new(),
             markets: Vec::new(),
             consumer_group: "kline_data_fetcher".to_string(),
-            brokers: "127.0.0.1:9092".to_string(),
+            brokers: "exchange-kafka:9092".to_string(),
             persist_interval: 3600,
             slice_interval: 86400,
             slice_keeptime: 86400 * 3,
