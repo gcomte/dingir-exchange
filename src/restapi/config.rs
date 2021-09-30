@@ -40,7 +40,13 @@ impl Default for Settings {
 impl Settings {
     pub fn new() -> Self {
         let mut conf = Config::default();
-        conf.merge(File::with_name("config/restapi/default.yaml")).unwrap();
+        conf.merge(File::with_name("config/restapi/default")).unwrap();
+
+        // Merges with `config/RUN_MODE.yaml` (development as default).
+        let run_mode = dotenv::var("RUN_MODE").unwrap_or_else(|_| "development".into());
+        conf.merge(File::with_name(&format!("config/restapi/{}", run_mode)).required(false))
+            .unwrap();
+
         conf.try_into().unwrap()
     }
 }
