@@ -1,4 +1,4 @@
-import { userId, base, quote, market, fee, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_MARKET, ORDER_TYPE_LIMIT } from "../config"; // dotenv
+import { TestUser, base, quote, market, fee, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_MARKET, ORDER_TYPE_LIMIT } from "../config"; // dotenv
 import { defaultClient as client } from "../client";
 import { sleep, assertDecimalEqual } from "../util";
 import { depositAssets } from "../exchange_helper";
@@ -8,8 +8,8 @@ import Decimal from "decimal.js";
 import { strict as assert } from "assert";
 import whynoderun from "why-is-node-running";
 
-const askUser = userId;
-const bidUser = userId + 1;
+const askUser = TestUser.USER1;
+const bidUser = TestUser.USER2;
 
 async function infoList() {
   console.log(await client.assetList());
@@ -81,7 +81,7 @@ async function tradeTest() {
 
   const testReload = false;
   if (testReload) {
-    await client.debugReload();
+    await client.debugReload(TestUser.ADMIN);
     await testStatusAfterTrade(askOrder.id, bidOrder.id);
   }
 
@@ -140,7 +140,7 @@ function checkMessages(messages) {
 }
 
 async function mainTest(withMQ) {
-  await client.debugReset();
+  await client.debugReset(TestUser.ADMIN);
 
   let kafkaConsumer: KafkaConsumer;
   if (withMQ) {
