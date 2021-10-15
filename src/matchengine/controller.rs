@@ -675,7 +675,6 @@ impl Controller {
         }
         let market = self.markets.get_mut(&req.market).unwrap();
         let balance_manager = &mut self.balance_manager;
-        let update_controller = &mut self.update_controller;
         let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
         let order_input = OrderInput::try_from(req.clone()).map_err(|e| Status::invalid_argument(format!("invalid decimal {}", e)))?;
         market
