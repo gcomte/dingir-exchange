@@ -100,7 +100,7 @@ pub struct OrderHistory {
     #[serde(with = "DateTimeMilliseconds")]
     pub finish_time: TimestampDbType,
     pub status: OrderStatus,
-    pub user_id: i32,
+    pub user_id: String,
     pub market: String,
     pub order_type: types::OrderType,
     pub order_side: types::OrderSide,

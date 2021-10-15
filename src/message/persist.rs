@@ -607,7 +607,7 @@ impl<'r> From<&'r super::BalanceMessage> for models::BalanceHistory {
         models::BalanceHistory {
             time: FTimestamp::from(&origin.timestamp).into(),
             user_id: origin.user_id.to_string(),
-            business_id: origin.business_id as i64,
+            business_id: 0i64, // dummy data, this field is a reserve field and can be used freely for custom purposes
             asset: origin.asset.clone(),
             business: origin.business.clone(),
             market_price: DecimalDbType::from_str(&origin.market_price).unwrap_or_else(decimal_warning),

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { defaultClient as client } from "../client";
 import { depositAssets } from "../exchange_helper";
-import { fee, ORDER_SIDE_BID, ORDER_TYPE_LIMIT } from "../config";
+import { fee, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config";
 import { strict as assert } from "assert";
 
 const botsIds = [1, 2, 3, 4, 5];
@@ -118,7 +118,7 @@ async function openOrderNum(userId) {
 async function main() {
   try {
     await initClient();
-    await client.debugReset();
+    await client.debugReset(TestUser.ADMIN);
     await initAssets();
     await mainTest();
   } catch (error) {
