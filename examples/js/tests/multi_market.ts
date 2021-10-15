@@ -1,7 +1,6 @@
 import axios from "axios";
 
 import { defaultClient as client } from "../client";
-import { getTestAccount } from "../accounts";
 import { fee, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT } from "../config";
 import { depositAssets } from "../exchange_helper";
 import { strict as assert } from "assert";

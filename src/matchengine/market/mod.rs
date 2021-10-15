@@ -76,7 +76,7 @@ impl BalanceManagerWrapper<'_> {
         self.inner.frozen(user_id.parse().unwrap(), asset, amount)
     }
     pub fn balance_unfrozen(&mut self, user_id: String, asset: &str, amount: &Decimal) {
-        self.inner.unfrozen(user_id.parse().unwrap(),asset, amount)
+        self.inner.unfrozen(user_id.parse().unwrap(), asset, amount)
     }
     pub fn asset_prec(&mut self, asset: &str) -> u32 {
         self.inner.asset_manager.asset_prec(asset)
@@ -901,13 +901,21 @@ mod tests {
                 post_only: false,
             };
             market
-                .put_order(sequencer, balance_manager.into(), &mut update_controller, &mut persistor, order, user_id)
+                .put_order(
+                    sequencer,
+                    balance_manager.into(),
+                    &mut update_controller,
+                    &mut persistor,
+                    order,
+                    user_id,
+                )
                 .unwrap();
         }
     }
 
     #[test]
     fn test_market_taker_is_bid() {
+        let mut update_controller = BalanceUpdateController::new();
         let balance_manager = &mut get_simple_balance_manager(get_simple_asset_config(8));
 
         balance_manager.add(
@@ -957,7 +965,7 @@ mod tests {
                 &mut update_controller,
                 &mut persistor,
                 ask_order_input,
-                ask_user_input,
+                ask_user_id,
             )
             .unwrap();
         assert_eq!(ask_order.id, 1);
