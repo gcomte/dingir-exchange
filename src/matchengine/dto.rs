@@ -50,7 +50,6 @@ impl TryFrom<OrderPutRequest> for market::OrderInput {
     type Error = anyhow::Error;
 
     fn try_from(req: OrderPutRequest) -> std::result::Result<Self, Self::Error> {
-
         Ok(market::OrderInput {
             side: if req.order_side == OrderSide::Ask as i32 {
                 market::OrderSide::ASK
