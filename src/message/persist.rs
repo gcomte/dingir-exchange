@@ -606,7 +606,7 @@ impl<'r> From<&'r super::BalanceMessage> for models::BalanceHistory {
     fn from(origin: &'r super::BalanceMessage) -> Self {
         models::BalanceHistory {
             time: FTimestamp::from(&origin.timestamp).into(),
-            user_id: origin.user_id as i32,
+            user_id: origin.user_id.to_string(),
             business_id: origin.business_id as i64,
             asset: origin.asset.clone(),
             business: origin.business.clone(),
@@ -627,7 +627,7 @@ impl MsgDataTransformer<models::UserTrade> for AskTrade {
     fn into(trade: &Self::MsgType) -> Option<models::UserTrade> {
         Some(models::UserTrade {
             time: FTimestamp(trade.timestamp).into(),
-            user_id: trade.ask_user_id as i32,
+            user_id: trade.ask_user_id.to_string(),
             market: trade.market.clone(),
             trade_id: trade.id as i64,
             order_id: trade.ask_order_id as i64,
@@ -650,7 +650,7 @@ impl MsgDataTransformer<models::UserTrade> for BidTrade {
     fn into(trade: &Self::MsgType) -> Option<models::UserTrade> {
         Some(models::UserTrade {
             time: FTimestamp(trade.timestamp).into(),
-            user_id: trade.bid_user_id as i32,
+            user_id: trade.bid_user_id.to_string(),
             market: trade.market.clone(),
             trade_id: trade.id as i64,
             order_id: trade.bid_order_id as i64,
@@ -670,8 +670,8 @@ impl<'r> From<&'r super::TransferMessage> for models::InternalTx {
     fn from(origin: &'r super::TransferMessage) -> Self {
         Self {
             time: FTimestamp(origin.time).into(),
-            user_from: origin.user_from as i32, // TODO: will this overflow?
-            user_to: origin.user_to as i32,     // TODO: will this overflow?
+            user_from: origin.user_from.to_string(),
+            user_to: origin.user_to.to_string(),
             asset: origin.asset.clone(),
             amount: DecimalDbType::from_str(&origin.amount).unwrap_or_else(decimal_warning),
         }
