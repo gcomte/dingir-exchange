@@ -4,7 +4,7 @@ import { Account } from "fluidex.js";
 import { defaultRESTClient, RESTClient } from "../RESTClient";
 import { defaultClient as defaultGrpcClient, Client as grpcClient, defaultClient } from "../client";
 import { sleep } from "../util";
-import { ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "../config";
+import { ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE, TestUser } from "../config";
 import {
   estimateMarketOrderSell,
   estimateMarketOrderBuy,
@@ -25,21 +25,19 @@ const baseCoin = "ETH";
 const quoteCoin = "USDT";
 
 async function main() {
-  const user_id = 3; // dummy user id
-
   await defaultClient.connect();
 
-  await rebalance(user_id, baseCoin, quoteCoin, market);
+  await rebalance(TestUser.USER1, baseCoin, quoteCoin, market);
 
   let bot = new MMByPriceBot();
-  bot.init(user_id, "bot1", defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
-  bot.priceFn = async function (coin: string) {
+  bot.init(TestUser.USER1, "bot1", defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
+  bot.priceFn = async function(coin: string) {
     return await getPriceOfCoin(coin, 5, "coinstats");
   };
   let balanceStats = [];
   let count = 0;
   const startTime = Date.now() / 1000;
-  const { totalValue: totalValueWhenStart } = await totalBalance(user_id, baseCoin, quoteCoin, market);
+  const { totalValue: totalValueWhenStart } = await totalBalance(TestUser.USER1, baseCoin, quoteCoin, market);
   while (true) {
     if (VERBOSE) {
       console.log("count:", count);
@@ -54,10 +52,10 @@ async function main() {
         const t = Date.now() / 1000; // ms
         console.log("stats of", bot.name);
         console.log("orders:");
-        console.log(await defaultClient.orderQuery(user, market));
+        console.log(await defaultClient.orderQuery(TestUser.USER1, market));
         console.log("balances:");
-        await printBalance(user_id, baseCoin, quoteCoin, market);
-        let { totalValue } = await totalBalance(user_id, baseCoin, quoteCoin, market);
+        await printBalance(TestUser.USER1, baseCoin, quoteCoin, market);
+        let { totalValue } = await totalBalance(TestUser.USER1, baseCoin, quoteCoin, market);
         balanceStats.push([t, totalValue]);
         if (balanceStats.length >= 2) {
           const pastHour = (t - startTime) / 3600;
@@ -70,15 +68,15 @@ async function main() {
         }
       }
 
-      const oldOrders = await defaultClient.orderQuery(user_id, market);
+      const oldOrders = await defaultClient.orderQuery(TestUser.USER1, market);
       if (VERBOSE) {
         console.log("oldOrders", oldOrders);
       }
 
-      const balance = await defaultClient.balanceQuery(user_id);
+      const balance = await defaultClient.balanceQuery(TestUser.USER1);
       const { reset, orders } = await bot.tick(balance, oldOrders);
 
-      await executeOrders(defaultClient, market, user, reset, orders, 0.001, false);
+      await executeOrders(defaultClient, market, TestUser.USER1, reset, orders, 0.001, false);
     } catch (e) {
       console.log("err", e);
     }
