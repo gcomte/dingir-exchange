@@ -341,7 +341,12 @@ impl Controller {
         self.persistor.service_available()
     }
 
-    pub fn update_balance(&mut self, real: bool, req: BalanceUpdateRequest, user_id: Uuid) -> std::result::Result<BalanceUpdateResponse, Status> {
+    pub fn update_balance(
+        &mut self,
+        real: bool,
+        req: BalanceUpdateRequest,
+        user_id: Uuid,
+    ) -> std::result::Result<BalanceUpdateResponse, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -476,7 +481,12 @@ impl Controller {
         Ok(OrderInfo::from(order))
     }
 
-    pub fn order_cancel_all(&mut self, real: bool, req: OrderCancelAllRequest, user_id: Uuid) -> Result<OrderCancelAllResponse, tonic::Status> {
+    pub fn order_cancel_all(
+        &mut self,
+        real: bool,
+        req: OrderCancelAllRequest,
+        user_id: Uuid,
+    ) -> Result<OrderCancelAllResponse, tonic::Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -761,11 +771,7 @@ impl Controller {
         if !self.markets.contains_key(&req.market) {
             return Err(Status::invalid_argument("invalid market"));
         }
-        let total_order_num: usize = self
-            .markets
-            .iter()
-            .map(|(_, market)| market.get_order_num_of_user(&user_id))
-            .sum();
+        let total_order_num: usize = self.markets.iter().map(|(_, market)| market.get_order_num_of_user(&user_id)).sum();
         debug_assert!(total_order_num <= self.settings.user_order_num_limit);
         if total_order_num == self.settings.user_order_num_limit {
             return Err(Status::unavailable("too many active orders for user"));
