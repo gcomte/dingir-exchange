@@ -8,7 +8,6 @@ use uuid::Uuid;
 const ONE_HOUR_IN_SECS: u64 = 60 * 60;
 
 pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
-
     let settings = Settings::new();
     log::debug!("Keycloak public key: {}", settings.keycloak_pubkey);
 
@@ -57,7 +56,7 @@ pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
 struct Claims {
     exp: u64,                          // Expiration time (as UTC timestamp). JWT library automatically checks expiry.
     iat: u64,                          // Issued at (as UTC timestamp)
-    sub: Uuid,                       // Subject (whom token refers to) --> user id
+    sub: Uuid,                         // Subject (whom token refers to) --> user id
     realm_access: Option<RealmAccess>, // Roles
 }
 

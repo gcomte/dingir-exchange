@@ -5,11 +5,11 @@ use std::fmt::Debug;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use crate::matchengine::authentication::UserExtension;
 use orchestra::rpc::exchange::*;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tonic::{self, Request, Response, Status};
 use uuid::Uuid;
-use crate::matchengine::authentication::UserExtension;
 
 const MAX_BATCH_ORDER_NUM: usize = 40;
 
@@ -176,8 +176,9 @@ impl matchengine_server::Matchengine for GrpcHandler {
     /*---------------------------- following are "written ops" ---------------------------------*/
     async fn balance_update(&self, request: Request<BalanceUpdateRequest>) -> Result<Response<BalanceUpdateResponse>, Status> {
         let user_id = get_user_id_from_request(&request);
-        let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.update_balance(true, request.into_inner(), user_id) }));
+        let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
+            Box::pin(async move { ctrl.update_balance(true, request.into_inner(), user_id) })
+        });
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
@@ -226,8 +227,9 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     async fn order_cancel(&self, request: tonic::Request<OrderCancelRequest>) -> Result<tonic::Response<OrderInfo>, tonic::Status> {
         let user_id = get_user_id_from_request(&request);
-        let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.order_cancel(true, request.into_inner(), user_id) }));
+        let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
+            Box::pin(async move { ctrl.order_cancel(true, request.into_inner(), user_id) })
+        });
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
@@ -238,7 +240,7 @@ impl matchengine_server::Matchengine for GrpcHandler {
     ) -> Result<tonic::Response<OrderCancelAllResponse>, tonic::Status> {
         let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
-            Box::pin(async move { ctrl.order_cancel_all(true, request.into_inner(),user_id) })
+            Box::pin(async move { ctrl.order_cancel_all(true, request.into_inner(), user_id) })
         });
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
@@ -256,8 +258,9 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     async fn transfer(&self, request: Request<TransferRequest>) -> Result<Response<TransferResponse>, Status> {
         let user_id = get_user_id_from_request(&request);
-        let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.transfer(true, request.into_inner(), user_id) }));
+        let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
+            Box::pin(async move { ctrl.transfer(true, request.into_inner(), user_id) })
+        });
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
