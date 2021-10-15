@@ -1,6 +1,7 @@
 use crate::market::Order;
 pub use crate::models::{BalanceHistory, InternalTx};
 use crate::types::OrderEventType;
+use uuid::Uuid;
 
 use anyhow::Result;
 use fluidex_common::utils::timeutil::FTimestamp;
@@ -17,7 +18,7 @@ pub use producer::{
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BalanceMessage {
     pub timestamp: f64,
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub business_id: u64,
     pub asset: String,
     pub business: String,
@@ -33,7 +34,7 @@ impl From<&BalanceHistory> for BalanceMessage {
     fn from(balance: &BalanceHistory) -> Self {
         Self {
             timestamp: balance.time.timestamp() as f64,
-            user_id: balance.user_id as u32,
+            user_id: balance.user_id.parse().unwrap(),
             business_id: balance.business_id as u64,
             asset: balance.asset.clone(),
             business: balance.business.clone(),
@@ -50,7 +51,7 @@ impl From<&BalanceHistory> for BalanceMessage {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DepositMessage {
     pub timestamp: f64,
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub asset: String,
     pub business: String,
     pub change: String,
@@ -64,7 +65,7 @@ impl From<&BalanceHistory> for DepositMessage {
     fn from(balance: &BalanceHistory) -> Self {
         Self {
             timestamp: balance.time.timestamp() as f64,
-            user_id: balance.user_id as u32,
+            user_id: balance.user_id.parse().unwrap(),
             asset: balance.asset.clone(),
             business: balance.business.clone(),
             change: balance.change.to_string(),
@@ -79,7 +80,7 @@ impl From<&BalanceHistory> for DepositMessage {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WithdrawMessage {
     pub timestamp: f64,
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub asset: String,
     pub business: String,
     pub change: String,
@@ -93,7 +94,7 @@ impl From<&BalanceHistory> for WithdrawMessage {
     fn from(balance: &BalanceHistory) -> Self {
         Self {
             timestamp: balance.time.timestamp() as f64,
-            user_id: balance.user_id as u32,
+            user_id: balance.user_id.parse().unwrap(),
             asset: balance.asset.clone(),
             business: balance.business.clone(),
             change: balance.change.to_string(),
@@ -108,8 +109,8 @@ impl From<&BalanceHistory> for WithdrawMessage {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TransferMessage {
     pub time: f64,
-    pub user_from: u32,
-    pub user_to: u32,
+    pub user_from: Uuid,
+    pub user_to: Uuid,
     pub asset: String,
     pub amount: String,
 }
@@ -118,8 +119,8 @@ impl From<InternalTx> for TransferMessage {
     fn from(tx: InternalTx) -> Self {
         Self {
             time: FTimestamp::from(&tx.time).into(),
-            user_from: tx.user_from as u32,
-            user_to: tx.user_to as u32,
+            user_from: tx.user_from.parse().unwrap(),
+            user_to: tx.user_to.parse().unwrap(),
             asset: tx.asset.to_string(),
             amount: tx.amount.to_string(),
         }
