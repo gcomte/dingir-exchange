@@ -452,7 +452,6 @@ impl Market {
                             traded_base_amount
                         },
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -474,7 +473,6 @@ impl Market {
                         market_price: self.price,
                         change: -traded_base_amount,
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -496,7 +494,6 @@ impl Market {
                             traded_quote_amount
                         },
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -518,7 +515,6 @@ impl Market {
                         market_price: self.price,
                         change: -traded_quote_amount,
                         detail: serde_json::Value::default(),
-                        signature: vec![],
                     },
                 )
                 .unwrap();
@@ -698,7 +694,13 @@ impl Market {
         user_id: String,
     ) -> usize {
         // TODO: can we mutate while iterate?
-        let order_ids: Vec<u64> = self.users.get(&user_id.parse().unwrap()).unwrap_or(&BTreeMap::new()).keys().copied().collect();
+        let order_ids: Vec<u64> = self
+            .users
+            .get(&user_id.parse().unwrap())
+            .unwrap_or(&BTreeMap::new())
+            .keys()
+            .copied()
+            .collect();
         let total = order_ids.len();
         for order_id in order_ids {
             let order = self.orders.get(&order_id).unwrap();
@@ -908,10 +910,30 @@ mod tests {
     fn test_market_taker_is_bid() {
         let balance_manager = &mut get_simple_balance_manager(get_simple_asset_config(8));
 
-        balance_manager.add(Uuid::from_str("f2c3a119-efc8-4a8a-9e44-9e3c378a7145").unwrap(), BalanceType::AVAILABLE, &MockAsset::USDT.id(), &dec!(300));
-        balance_manager.add(Uuid::from_str("9f165718-6f7a-49f0-a619-85add5d0aacb").unwrap(), BalanceType::AVAILABLE, &MockAsset::USDT.id(), &dec!(300));
-        balance_manager.add(Uuid::from_str("f2c3a119-efc8-4a8a-9e44-9e3c378a7145").unwrap(), BalanceType::AVAILABLE, &MockAsset::ETH.id(), &dec!(1000));
-        balance_manager.add(Uuid::from_str("9f165718-6f7a-49f0-a619-85add5d0aacb").unwrap(), BalanceType::AVAILABLE, &MockAsset::ETH.id(), &dec!(1000));
+        balance_manager.add(
+            Uuid::from_str("f2c3a119-efc8-4a8a-9e44-9e3c378a7145").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::USDT.id(),
+            &dec!(300),
+        );
+        balance_manager.add(
+            Uuid::from_str("9f165718-6f7a-49f0-a619-85add5d0aacb").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::USDT.id(),
+            &dec!(300),
+        );
+        balance_manager.add(
+            Uuid::from_str("f2c3a119-efc8-4a8a-9e44-9e3c378a7145").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::ETH.id(),
+            &dec!(1000),
+        );
+        balance_manager.add(
+            Uuid::from_str("9f165718-6f7a-49f0-a619-85add5d0aacb").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::ETH.id(),
+            &dec!(1000),
+        );
 
         let sequencer = &mut Sequencer::default();
         let mut persistor = crate::persist::DummyPersistor::default();
@@ -1021,10 +1043,30 @@ mod tests {
         let mut update_controller = BalanceUpdateController::new();
         let balance_manager = &mut get_simple_balance_manager(get_simple_asset_config(8));
 
-        balance_manager.add(Uuid::from_str("74a3c761-0fbd-4a8c-8a38-b8c1a3e9138a").unwrap(), BalanceType::AVAILABLE, &MockAsset::USDT.id(), &dec!(300));
-        balance_manager.add(Uuid::from_str("3e8bd3ba-baf5-4052-91de-abde8e062b57").unwrap(), BalanceType::AVAILABLE, &MockAsset::USDT.id(), &dec!(300));
-        balance_manager.add(Uuid::from_str("74a3c761-0fbd-4a8c-8a38-b8c1a3e9138a").unwrap(), BalanceType::AVAILABLE, &MockAsset::ETH.id(), &dec!(1000));
-        balance_manager.add(Uuid::from_str("3e8bd3ba-baf5-4052-91de-abde8e062b57").unwrap(), BalanceType::AVAILABLE, &MockAsset::ETH.id(), &dec!(1000));
+        balance_manager.add(
+            Uuid::from_str("74a3c761-0fbd-4a8c-8a38-b8c1a3e9138a").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::USDT.id(),
+            &dec!(300),
+        );
+        balance_manager.add(
+            Uuid::from_str("3e8bd3ba-baf5-4052-91de-abde8e062b57").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::USDT.id(),
+            &dec!(300),
+        );
+        balance_manager.add(
+            Uuid::from_str("74a3c761-0fbd-4a8c-8a38-b8c1a3e9138a").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::ETH.id(),
+            &dec!(1000),
+        );
+        balance_manager.add(
+            Uuid::from_str("3e8bd3ba-baf5-4052-91de-abde8e062b57").unwrap(),
+            BalanceType::AVAILABLE,
+            &MockAsset::ETH.id(),
+            &dec!(1000),
+        );
 
         let sequencer = &mut Sequencer::default();
         let mut persistor = crate::persist::MemBasedPersistor::default();
