@@ -1,4 +1,5 @@
 pub mod asset;
+pub mod authentication;
 pub mod controller;
 pub mod dto;
 pub mod history;
