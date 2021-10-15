@@ -9,6 +9,7 @@ use dingir_exchange::config;
 use dingir_exchange::controller::create_controller;
 use dingir_exchange::persist;
 use dingir_exchange::server::GrpcHandler;
+use dingir_exchange::matchengine::authentication;
 //use dingir_exchange::sqlxextend;
 
 use dingir_exchange::types::ConnectionType;
@@ -70,7 +71,7 @@ async fn grpc_run(mut grpc: GrpcHandler) -> Result<(), Box<dyn std::error::Error
     });
 
     tonic::transport::Server::builder()
-        .add_service(MatchengineServer::new(grpc))
+        .add_service(MatchengineServer::with_interceptor(grpc, authentication::interceptor))
         .serve_with_shutdown(addr, async {
             rx.await.ok();
         })

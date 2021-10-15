@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::sync::Arc;
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use uuid::Uuid;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct MarketKeyAsk {
@@ -86,7 +87,7 @@ pub struct Order {
     #[serde(rename = "type")]
     pub type_: OrderType, // enum
     pub side: OrderSide,
-    pub user: u32,
+    pub user: Uuid,
     pub post_only: bool,
     pub price: Decimal,
     pub amount: Decimal,
@@ -158,7 +159,6 @@ impl OrderRc {
 }
 
 pub struct OrderInput {
-    pub user_id: u32,
     pub side: OrderSide,
     pub type_: OrderType,
     pub amount: Decimal,
