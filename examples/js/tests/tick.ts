@@ -1,4 +1,4 @@
-import { ORDER_SIDE_BID, ORDER_SIDE_ASK } from "../config";
+import { ORDER_SIDE_BID, ORDER_SIDE_ASK, TestUser } from "../config";
 import { defaultClient as client } from "../client";
 import { sleep, getRandomFloatAround, getRandomFloatAroundNormal, getRandomElem } from "../util";
 import { strict as assert } from "assert";
@@ -125,7 +125,7 @@ async function main() {
   await initClient();
   //await cancelAll();
   if (reset) {
-    await client.debugReset();
+    await client.debugReset(TestUser.ADMIN);
     await initAssets();
     await transferTest();
     await withdrawTest();
