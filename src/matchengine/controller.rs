@@ -26,6 +26,7 @@ use tonic::{self, Status};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;
+use uuid::Uuid;
 
 pub trait OperationLogConsumer {
     fn is_block(&self) -> bool;
@@ -165,7 +166,7 @@ impl Controller {
         };
         Ok(result)
     }
-    pub fn balance_query(&self, req: BalanceQueryRequest) -> Result<BalanceQueryResponse, Status> {
+    pub fn balance_query(&self, req: BalanceQueryRequest, user_id: Uuid) -> Result<BalanceQueryResponse, Status> {
         let all_asset_param_valid = req
             .assets
             .iter()
@@ -178,7 +179,6 @@ impl Controller {
         } else {
             req.assets
         };
-        let user_id = req.user_id;
         let balance_manager = &self.balance_manager;
         let balances = query_assets
             .into_iter()
@@ -196,12 +196,9 @@ impl Controller {
             .collect();
         Ok(BalanceQueryResponse { balances })
     }
-    pub fn order_query(&self, req: OrderQueryRequest) -> Result<OrderQueryResponse, Status> {
+    pub fn order_query(&self, req: OrderQueryRequest, user_id: Uuid) -> Result<OrderQueryResponse, Status> {
         if req.market != "all" && !self.markets.contains_key(&req.market) {
             return Err(Status::invalid_argument("invalid market"));
-        }
-        if req.user_id == 0 {
-            return Err(Status::invalid_argument("invalid user_id"));
         }
         // TODO: magic number
         let max_order_num = 100;
@@ -220,12 +217,12 @@ impl Controller {
             .map(|(_key, market)| market);
         let total_order_count: usize = markets
             .clone()
-            .map(|m| m.users.get(&req.user_id).map(|order_map| order_map.len()).unwrap_or(0))
+            .map(|m| m.users.get(&user_id).map(|order_map| order_map.len()).unwrap_or(0))
             .sum();
         let orders_by_market: Vec<Box<dyn Iterator<Item = Order>>> = markets
             .map(|m| {
                 m.users
-                    .get(&req.user_id)
+                    .get(&user_id)
                     .map(|order_map| Box::new(order_map.values().rev().map(|order_rc| order_rc.deep())) as Box<dyn Iterator<Item = Order>>)
                     .unwrap_or_else(|| Box::new(Vec::new().into_iter()) as Box<dyn Iterator<Item = Order>>)
             })
@@ -336,7 +333,7 @@ impl Controller {
         self.persistor.service_available()
     }
 
-    pub fn update_balance(&mut self, real: bool, req: BalanceUpdateRequest) -> std::result::Result<BalanceUpdateResponse, Status> {
+    pub fn update_balance(&mut self, real: bool, req: BalanceUpdateRequest, user_id: Uuid) -> std::result::Result<BalanceUpdateResponse, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -364,7 +361,7 @@ impl Controller {
                 persistor,
                 BalanceUpdateParams {
                     typ: update_type,
-                    user_id: req.user_id,
+                    user_id,
                     asset: req.asset.to_string(),
                     business: req.business.clone(),
                     business_id: req.business_id,
@@ -377,23 +374,23 @@ impl Controller {
         // TODO how to handle this error?
         // TODO operation_log after exec or before exec?
         if real {
-            self.append_operation_log(OPERATION_BALANCE_UPDATE, &req);
+            self.append_operation_log(OPERATION_BALANCE_UPDATE, &req, user_id);
         }
         Ok(BalanceUpdateResponse::default())
     }
 
-    pub fn order_put(&mut self, real: bool, req: OrderPutRequest) -> Result<OrderInfo, Status> {
+    pub fn order_put(&mut self, real: bool, req: OrderPutRequest, user_id: Uuid) -> Result<OrderInfo, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
-        let order = self.put_order(real, &req)?;
+        let order = self.put_order(real, &req, user_id)?;
         if real {
-            self.append_operation_log(OPERATION_ORDER_PUT, &req);
+            self.append_operation_log(OPERATION_ORDER_PUT, &req, user_id);
         }
         Ok(OrderInfo::from(order))
     }
 
-    pub fn batch_order_put(&mut self, real: bool, req: BatchOrderPutRequest) -> Result<BatchOrderPutResponse, Status> {
+    pub fn batch_order_put(&mut self, real: bool, req: BatchOrderPutRequest, user_id: Uuid) -> Result<BatchOrderPutResponse, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -409,7 +406,7 @@ impl Controller {
                 }
                 let market = self.markets.get_mut(market_name).unwrap();
                 let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
-                market.cancel_all_for_user((&mut self.balance_manager).into(), persistor, order_req.user_id);
+                market.cancel_all_for_user((&mut self.balance_manager).into(), persistor, user_id.to_string());
             }
         }
         let mut result_code = ResultCode::Success;
@@ -420,7 +417,7 @@ impl Controller {
                 return Err(Status::invalid_argument("inconsistent order markets"));
             }
 
-            match self.put_order(real, &order_req) {
+            match self.put_order(real, &order_req, user_id) {
                 Ok(order) => order_ids.push(order.id),
                 Err(error) => {
                     result_code = ResultCode::InternalError;
@@ -430,7 +427,7 @@ impl Controller {
             }
         }
         if real {
-            self.append_operation_log(OPERATION_BATCH_ORDER_PUT, &req);
+            self.append_operation_log(OPERATION_BATCH_ORDER_PUT, &req, user_id);
         }
         Ok(BatchOrderPutResponse {
             result_code: result_code.into(),
@@ -439,7 +436,7 @@ impl Controller {
         })
     }
 
-    pub fn order_cancel(&mut self, real: bool, req: OrderCancelRequest) -> Result<OrderInfo, tonic::Status> {
+    pub fn order_cancel(&mut self, real: bool, req: OrderCancelRequest, user_id: Uuid) -> Result<OrderInfo, tonic::Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -450,7 +447,7 @@ impl Controller {
         let order = market
             .get(req.order_id)
             .ok_or_else(|| Status::invalid_argument("invalid order_id"))?;
-        if order.user != req.user_id {
+        if !order.user.eq(&user_id) {
             return Err(Status::invalid_argument("invalid user"));
         }
         let balance_manager = &mut self.balance_manager;
@@ -458,12 +455,12 @@ impl Controller {
         let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
         market.cancel(balance_manager.into(), persistor, order.id);
         if real {
-            self.append_operation_log(OPERATION_ORDER_CANCEL, &req);
+            self.append_operation_log(OPERATION_ORDER_CANCEL, &req, user_id);
         }
         Ok(OrderInfo::from(order))
     }
 
-    pub fn order_cancel_all(&mut self, real: bool, req: OrderCancelAllRequest) -> Result<OrderCancelAllResponse, tonic::Status> {
+    pub fn order_cancel_all(&mut self, real: bool, req: OrderCancelAllRequest, user_id: Uuid) -> Result<OrderCancelAllResponse, tonic::Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -473,9 +470,9 @@ impl Controller {
             .ok_or_else(|| Status::invalid_argument("invalid market"))?;
         //let persistor = self.get_persistor(real);
         let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
-        let total = market.cancel_all_for_user((&mut self.balance_manager).into(), persistor, req.user_id) as u32;
+        let total = market.cancel_all_for_user((&mut self.balance_manager).into(), persistor, user_id.to_string()) as u32;
         if real {
-            self.append_operation_log(OPERATION_ORDER_CANCEL_ALL, &req);
+            self.append_operation_log(OPERATION_ORDER_CANCEL_ALL, &req, user_id);
         }
         Ok(OrderCancelAllResponse { total })
     }
@@ -539,7 +536,7 @@ impl Controller {
         Ok(())
     }
 
-    pub fn transfer(&mut self, real: bool, req: TransferRequest) -> Result<TransferResponse, Status> {
+    pub fn transfer(&mut self, real: bool, req: TransferRequest, user_id: Uuid) -> Result<TransferResponse, Status> {
         if !self.check_service_available() {
             return Err(Status::unavailable(""));
         }
@@ -549,11 +546,10 @@ impl Controller {
             return Err(Status::invalid_argument("invalid asset"));
         }
 
-        let from_user_id = req.from;
-        let to_user_id = req.to;
+        let to_user_id = req.to.clone();
 
         let balance_manager = &self.balance_manager;
-        let balance_from = balance_manager.get(from_user_id, BalanceType::AVAILABLE, asset_id);
+        let balance_from = balance_manager.get(user_id, BalanceType::AVAILABLE, asset_id);
 
         let zero = Decimal::from(0);
         let delta = Decimal::from_str(&req.delta).unwrap_or(zero);
@@ -586,7 +582,7 @@ impl Controller {
                 persistor,
                 BalanceUpdateParams {
                     typ: BalanceUpdateType::Transfer,
-                    user_id: from_user_id,
+                    user_id,
                     asset: asset_id.to_owned(),
                     business: business.to_owned(),
                     business_id,
@@ -603,7 +599,7 @@ impl Controller {
                 persistor,
                 BalanceUpdateParams {
                     typ: BalanceUpdateType::Transfer,
-                    user_id: to_user_id,
+                    user_id: to_user_id.parse().unwrap(),
                     asset: asset_id.to_owned(),
                     business: business.to_owned(),
                     business_id,
@@ -616,13 +612,13 @@ impl Controller {
         if real {
             self.persistor.put_transfer(models::InternalTx {
                 time: timestamp.into(),
-                user_from: from_user_id as i32, // TODO: will this overflow?
-                user_to: to_user_id as i32,     // TODO: will this overflow?
+                user_from: user_id.to_string(),
+                user_to: to_user_id,
                 asset: asset_id.to_string(),
                 amount: change,
             });
 
-            self.append_operation_log(OPERATION_TRANSFER, &req);
+            self.append_operation_log(OPERATION_TRANSFER, &req, user_id);
         }
 
         Ok(TransferResponse {
@@ -712,38 +708,38 @@ impl Controller {
     }
 
     // reload 1000 in batch and replay
-    pub fn replay(&mut self, method: &str, params: &str) -> SimpleResult {
+    pub fn replay(&mut self, user_id: Uuid, method: &str, params: &str) -> SimpleResult {
         match method {
             OPERATION_BALANCE_UPDATE => {
-                self.update_balance(false, serde_json::from_str(params)?)?;
+                self.update_balance(false, serde_json::from_str(params)?, user_id)?;
             }
             OPERATION_ORDER_CANCEL => {
-                self.order_cancel(false, serde_json::from_str(params)?)?;
+                self.order_cancel(false, serde_json::from_str(params)?, user_id)?;
             }
             OPERATION_ORDER_CANCEL_ALL => {
-                self.order_cancel_all(false, serde_json::from_str(params)?)?;
+                self.order_cancel_all(false, serde_json::from_str(params)?, user_id)?;
             }
             OPERATION_ORDER_PUT => {
-                self.order_put(false, serde_json::from_str(params)?)?;
+                self.order_put(false, serde_json::from_str(params)?, user_id)?;
             }
             OPERATION_BATCH_ORDER_PUT => {
-                self.batch_order_put(false, serde_json::from_str(params)?)?;
+                self.batch_order_put(false, serde_json::from_str(params)?, user_id)?;
             }
             OPERATION_TRANSFER => {
-                self.transfer(false, serde_json::from_str(params)?)?;
+                self.transfer(false, serde_json::from_str(params)?, user_id)?;
             }
             _ => bail!("invalid operation {}", method),
         }
         Ok(())
     }
-    fn put_order(&mut self, real: bool, req: &OrderPutRequest) -> Result<Order, Status> {
+    fn put_order(&mut self, real: bool, req: &OrderPutRequest, user_id: Uuid) -> Result<Order, Status> {
         if !self.markets.contains_key(&req.market) {
             return Err(Status::invalid_argument("invalid market"));
         }
         let total_order_num: usize = self
             .markets
             .iter()
-            .map(|(_, market)| market.get_order_num_of_user(req.user_id))
+            .map(|(_, market)| market.get_order_num_of_user(&user_id))
             .sum();
         debug_assert!(total_order_num <= self.settings.user_order_num_limit);
         if total_order_num == self.settings.user_order_num_limit {
@@ -754,16 +750,17 @@ impl Controller {
         let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
         let order_input = OrderInput::try_from(req.clone()).map_err(|e| Status::invalid_argument(format!("invalid decimal {}", e)))?;
         market
-            .put_order(&mut self.sequencer, balance_manager.into(), persistor, order_input)
+            .put_order(&mut self.sequencer, balance_manager.into(), persistor, order_input, user_id)
             .map_err(|e| Status::unknown(format!("{}", e)))
     }
-    fn append_operation_log<Operation>(&mut self, method: &str, req: &Operation)
+    fn append_operation_log<Operation>(&mut self, method: &str, req: &Operation, user_id: Uuid)
     where
         Operation: Serialize,
     {
         let params = serde_json::to_string(req).unwrap();
         let operation_log = models::OperationLog {
             id: self.sequencer.next_operation_log_id() as i64,
+            user_id: user_id.to_string(),
             time: FTimestamp(utils::current_timestamp()).into(),
             method: method.to_owned(),
             params,

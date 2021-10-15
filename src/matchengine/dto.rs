@@ -30,7 +30,6 @@ impl From<market::Order> for OrderInfo {
             } else {
                 OrderSide::Bid as i32
             },
-            user_id: o.user,
             create_time: o.create_time,
             update_time: o.update_time,
             price: o.price.to_string(),
@@ -50,8 +49,8 @@ impl TryFrom<OrderPutRequest> for market::OrderInput {
     type Error = anyhow::Error;
 
     fn try_from(req: OrderPutRequest) -> std::result::Result<Self, Self::Error> {
+
         Ok(market::OrderInput {
-            user_id: req.user_id,
             side: if req.order_side == OrderSide::Ask as i32 {
                 market::OrderSide::ASK
             } else {
