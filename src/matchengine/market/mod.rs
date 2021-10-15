@@ -915,6 +915,7 @@ mod tests {
 
     #[test]
     fn test_market_taker_is_bid() {
+        let mut update_controller = BalanceUpdateController::new();
         let balance_manager = &mut get_simple_balance_manager(get_simple_asset_config(8));
 
         balance_manager.add(

@@ -12,6 +12,7 @@ use uuid::Uuid;
 use std::time::Duration;
 
 const BALANCE_MAP_INIT_SIZE_ASSET: usize = 64;
+const PERSIST_ZERO_BALANCE_UPDATE: bool = false;
 
 pub struct BalanceUpdateParams {
     pub balance_type: BalanceType,
