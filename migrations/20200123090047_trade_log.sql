@@ -1,7 +1,7 @@
 CREATE TABLE balance_slice (
     id SERIAL PRIMARY KEY,
     slice_id BIGINT NOT NULL,
-    user_id INT CHECK (user_id >= 0) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     asset VARCHAR(30) NOT NULL,
     t SMALLINT CHECK (t >= 0) NOT NULL,
     balance DECIMAL(30, 16) NOT NULL
@@ -14,7 +14,7 @@ CREATE TABLE order_slice (
     order_side VARCHAR(30) NOT NULL,
     create_time TIMESTAMP(0) NOT NULL,
     update_time TIMESTAMP(0) NOT NULL,
-    user_id INT CHECK (user_id >= 0) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
     market VARCHAR(30) NOT NULL,
     price DECIMAL(30, 8) NOT NULL,
     amount DECIMAL(30, 8) NOT NULL,

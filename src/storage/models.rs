@@ -70,7 +70,7 @@ pub struct BalanceHistory {
     //field (not like diesel imply within the derive macro)
     //pub id: i64,
     pub time: TimestampDbType,
-    pub user_id: i32,
+    pub user_id: String,
     pub business_id: i64,
     pub asset: String,
     pub business: String,
@@ -117,7 +117,7 @@ pub struct OrderHistory {
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct UserTrade {
     pub time: TimestampDbType,
-    pub user_id: i32,
+    pub user_id: String,
     pub market: String,
     pub trade_id: i64,
     pub order_id: i64,
@@ -135,6 +135,7 @@ pub struct UserTrade {
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct OperationLog {
     pub id: i64,
+    pub user_id: String,
     pub time: TimestampDbType,
     pub method: String,
     // TODO: change it to jsonb
@@ -146,7 +147,7 @@ pub struct OperationLog {
 pub struct BalanceSlice {
     pub id: i32,
     pub slice_id: i64, // Unix timestamp
-    pub user_id: i32,
+    pub user_id: String,
     pub asset: String,
     pub t: i16, // Enum: AVAILABLE or FREEZE
     pub balance: DecimalDbType,
@@ -156,7 +157,7 @@ pub struct BalanceSlice {
 pub struct BalanceSliceInsert {
     //pub id: i32,
     pub slice_id: i64, // Unix timestamp
-    pub user_id: i32,
+    pub user_id: String,
     pub asset: String,
     pub t: i16, // Enum: AVAILABLE or FREEZE
     pub balance: DecimalDbType,
@@ -171,7 +172,7 @@ pub struct OrderSlice {
     pub order_side: types::OrderSide,
     pub create_time: TimestampDbType,
     pub update_time: TimestampDbType,
-    pub user_id: i32,
+    pub user_id: String,
     pub market: String,
     //pub source: String,
     pub price: DecimalDbType,
@@ -210,11 +211,10 @@ pub struct MarketTrade {
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct InternalTx {
     pub time: TimestampDbType,
-    pub user_from: i32,
-    pub user_to: i32,
+    pub user_from: String,
+    pub user_to: String,
     pub asset: String,
     pub amount: DecimalDbType,
-    pub signature: Vec<u8>,
 }
 
 /*
@@ -236,8 +236,8 @@ impl sqlxextend::TableSchemas for InternalTx {
 impl sqlxextend::BindQueryArg<'_, DbType> for InternalTx {
     fn bind_args<'g, 'q: 'g>(&'q self, arg: &mut impl sqlx::Arguments<'g, Database = DbType>) {
         arg.add(self.time);
-        arg.add(self.user_from);
-        arg.add(self.user_to);
+        arg.add(&self.user_from);
+        arg.add(&self.user_to);
         arg.add(&self.asset);
         arg.add(self.amount);
     }
@@ -259,7 +259,7 @@ impl sqlxextend::TableSchemas for BalanceHistory {
 impl sqlxextend::BindQueryArg<'_, DbType> for BalanceHistory {
     fn bind_args<'g, 'q: 'g>(&'q self, arg: &mut impl sqlx::Arguments<'g, Database = DbType>) {
         arg.add(self.time);
-        arg.add(self.user_id);
+        arg.add(&self.user_id);
         arg.add(self.business_id);
         arg.add(&self.asset);
         arg.add(&self.business);
@@ -288,7 +288,7 @@ impl sqlxextend::TableSchemas for UserTrade {
 impl sqlxextend::BindQueryArg<'_, DbType> for UserTrade {
     fn bind_args<'g, 'q: 'g>(&'q self, arg: &mut impl sqlx::Arguments<'g, Database = DbType>) {
         arg.add(self.time);
-        arg.add(self.user_id);
+        arg.add(&self.user_id);
         arg.add(&self.market);
         arg.add(self.trade_id);
         arg.add(self.order_id);
@@ -319,7 +319,7 @@ impl sqlxextend::BindQueryArg<'_, DbType> for OrderHistory {
         arg.add(self.id);
         arg.add(self.create_time);
         arg.add(self.finish_time);
-        arg.add(self.user_id);
+        arg.add(&self.user_id);
         arg.add(&self.market);
         arg.add(self.order_type);
         arg.add(self.order_side);
@@ -374,7 +374,7 @@ impl sqlxextend::BindQueryArg<'_, DbType> for OrderSlice {
         arg.add(self.order_side);
         arg.add(self.create_time);
         arg.add(self.update_time);
-        arg.add(self.user_id);
+        arg.add(&self.user_id);
         arg.add(&self.market);
         arg.add(&self.price);
         arg.add(&self.amount);
@@ -406,7 +406,7 @@ impl sqlxextend::TableSchemas for BalanceSliceInsert {
 impl sqlxextend::BindQueryArg<'_, DbType> for BalanceSliceInsert {
     fn bind_args<'g, 'q: 'g>(&'q self, arg: &mut impl sqlx::Arguments<'g, Database = DbType>) {
         arg.add(self.slice_id);
-        arg.add(self.user_id);
+        arg.add(&self.user_id);
         arg.add(&self.asset);
         arg.add(self.t);
         arg.add(&self.balance);

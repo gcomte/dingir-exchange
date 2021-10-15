@@ -1,8 +1,8 @@
 -- Add migration script here
 CREATE TABLE internal_tx (
     time TIMESTAMP(0) NOT NULL,
-    user_from INT CHECK (user_from >= 0) NOT NULL,
-    user_to INT CHECK (user_to >= 0) NOT NULL,
+    user_from VARCHAR(36) NOT NULL,
+    user_to VARCHAR(36) NOT NULL,
     asset VARCHAR(30) NOT NULL REFERENCES asset(id),
     amount DECIMAL(30, 8) CHECK (amount > 0) NOT NULL
 );

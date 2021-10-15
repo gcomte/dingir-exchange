@@ -7,16 +7,16 @@ pub use models::BalanceHistory;
 use anyhow::{bail, Result};
 use fluidex_common::rust_decimal::Decimal;
 use ttl_cache::TtlCache;
+use uuid::Uuid;
 
 use std::time::Duration;
 
 const BALANCE_MAP_INIT_SIZE_ASSET: usize = 64;
-const PERSIST_ZERO_BALANCE_UPDATE: bool = false;
 
 pub struct BalanceUpdateParams {
     pub balance_type: BalanceType,
     pub business_type: BusinessType,
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub business_id: u64,
     pub asset: String,
     pub business: String,
@@ -37,7 +37,7 @@ pub enum BusinessType {
 struct BalanceUpdateKey {
     pub balance_type: BalanceType,
     pub business_type: BusinessType,
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub asset: String,
     pub business: String,
     pub business_id: u64,
@@ -112,7 +112,7 @@ impl BalanceUpdateController {
             let balance_frozen = balance_manager.get(user_id, BalanceType::FREEZE, &asset);
             let balance_history = BalanceHistory {
                 time: FTimestamp(current_timestamp()).into(),
-                user_id: user_id as i32,
+                user_id: user_id.to_string(),
                 business_id: business_id as i64,
                 asset,
                 business,
