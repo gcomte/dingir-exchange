@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use num_enum::TryFromPrimitive;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Eq, Hash, Copy, TryFromPrimitive)]
 #[repr(i16)]
@@ -19,7 +20,7 @@ pub enum BalanceType {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Eq, Hash)]
 pub struct BalanceMapKey {
-    pub user_id: u32,
+    pub user_id: Uuid,
     pub balance_type: BalanceType,
     pub asset: String,
 }
@@ -51,14 +52,14 @@ impl BalanceManager {
     pub fn reset(&mut self) {
         self.balances.clear()
     }
-    pub fn get(&self, user_id: u32, balance_type: BalanceType, asset: &str) -> Decimal {
+    pub fn get(&self, user_id: Uuid, balance_type: BalanceType, asset: &str) -> Decimal {
         self.get_by_key(&BalanceMapKey {
             user_id,
             balance_type,
             asset: asset.to_owned(),
         })
     }
-    pub fn get_with_round(&self, user_id: u32, balance_type: BalanceType, asset: &str) -> Decimal {
+    pub fn get_with_round(&self, user_id: Uuid, balance_type: BalanceType, asset: &str) -> Decimal {
         let balance: Decimal = self.get(user_id, balance_type, asset);
         let prec_save = self.asset_manager.asset_prec(asset);
         let prec_show = self.asset_manager.asset_prec_show(asset);
@@ -72,14 +73,14 @@ impl BalanceManager {
     pub fn get_by_key(&self, key: &BalanceMapKey) -> Decimal {
         *self.balances.get(key).unwrap_or(&Decimal::zero())
     }
-    pub fn del(&mut self, user_id: u32, balance_type: BalanceType, asset: &str) {
+    pub fn del(&mut self, user_id: Uuid, balance_type: BalanceType, asset: &str) {
         self.balances.remove(&BalanceMapKey {
             user_id,
             balance_type,
             asset: asset.to_owned(),
         });
     }
-    pub fn set(&mut self, user_id: u32, balance_type: BalanceType, asset: &str, amount: &Decimal) {
+    pub fn set(&mut self, user_id: Uuid, balance_type: BalanceType, asset: &str, amount: &Decimal) {
         let key = BalanceMapKey {
             user_id,
             balance_type,
@@ -93,7 +94,7 @@ impl BalanceManager {
         //log::debug!("set balance: {:?}, {}", key, amount);
         self.balances.insert(key, amount);
     }
-    pub fn add(&mut self, user_id: u32, balance_type: BalanceType, asset: &str, amount: &Decimal) -> Decimal {
+    pub fn add(&mut self, user_id: Uuid, balance_type: BalanceType, asset: &str, amount: &Decimal) -> Decimal {
         debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
         let key = BalanceMapKey {
@@ -106,7 +107,7 @@ impl BalanceManager {
         self.set_by_key(key, &new_value);
         new_value
     }
-    pub fn sub(&mut self, user_id: u32, balance_type: BalanceType, asset: &str, amount: &Decimal) -> Decimal {
+    pub fn sub(&mut self, user_id: Uuid, balance_type: BalanceType, asset: &str, amount: &Decimal) -> Decimal {
         debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
         let key = BalanceMapKey {
@@ -129,7 +130,7 @@ impl BalanceManager {
         self.set_by_key(key, &new_value);
         new_value
     }
-    pub fn frozen(&mut self, user_id: u32, asset: &str, amount: &Decimal) {
+    pub fn frozen(&mut self, user_id: Uuid, asset: &str, amount: &Decimal) {
         debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
         let key = BalanceMapKey {
@@ -142,7 +143,7 @@ impl BalanceManager {
         self.sub(user_id, BalanceType::AVAILABLE, asset, &amount);
         self.add(user_id, BalanceType::FREEZE, asset, &amount);
     }
-    pub fn unfrozen(&mut self, user_id: u32, asset: &str, amount: &Decimal) {
+    pub fn unfrozen(&mut self, user_id: Uuid, asset: &str, amount: &Decimal) {
         debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
         let key = BalanceMapKey {
@@ -160,7 +161,7 @@ impl BalanceManager {
         self.add(user_id, BalanceType::AVAILABLE, asset, &amount);
         self.sub(user_id, BalanceType::FREEZE, asset, &amount);
     }
-    pub fn total(&self, user_id: u32, asset: &str) -> Decimal {
+    pub fn total(&self, user_id: Uuid, asset: &str) -> Decimal {
         self.get(user_id, BalanceType::AVAILABLE, asset) + self.get(user_id, BalanceType::FREEZE, asset)
     }
     pub fn status(&self, asset: &str) -> BalanceStatus {

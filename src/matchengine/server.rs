@@ -8,6 +8,8 @@ use std::sync::Arc;
 use orchestra::rpc::exchange::*;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tonic::{self, Request, Response, Status};
+use uuid::Uuid;
+use crate::matchengine::authentication::UserExtension;
 
 const MAX_BATCH_ORDER_NUM: usize = 40;
 
@@ -139,12 +141,14 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     async fn balance_query(&self, request: Request<BalanceQueryRequest>) -> Result<Response<BalanceQueryResponse>, Status> {
         let stub = self.stub.read().await;
-        Ok(Response::new(stub.balance_query(request.into_inner())?))
+        let user_id = get_user_id_from_request(&request);
+        Ok(Response::new(stub.balance_query(request.into_inner(), user_id)?))
     }
 
     async fn order_query(&self, request: tonic::Request<OrderQueryRequest>) -> Result<tonic::Response<OrderQueryResponse>, tonic::Status> {
         let stub = self.stub.read().await;
-        Ok(Response::new(stub.order_query(request.into_inner())?))
+        let user_id = get_user_id_from_request(&request);
+        Ok(Response::new(stub.order_query(request.into_inner(), user_id)?))
     }
     async fn order_book_depth(
         &self,
@@ -171,14 +175,16 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     /*---------------------------- following are "written ops" ---------------------------------*/
     async fn balance_update(&self, request: Request<BalanceUpdateRequest>) -> Result<Response<BalanceUpdateResponse>, Status> {
+        let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.update_balance(true, request.into_inner()) }));
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.update_balance(true, request.into_inner(), user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
     }
 
     async fn order_put(&self, request: Request<OrderPutRequest>) -> Result<Response<OrderInfo>, Status> {
+        let user_id = get_user_id_from_request(&request);
         let req = request.into_inner();
 
         {
@@ -195,13 +201,14 @@ impl matchengine_server::Matchengine for GrpcHandler {
                 .map_err(|_| Status::invalid_argument("invalid order params"))?;
         }
         let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.order_put(true, req) }));
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.order_put(true, req, user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
     }
 
     async fn batch_order_put(&self, request: Request<BatchOrderPutRequest>) -> Result<Response<BatchOrderPutResponse>, Status> {
+        let user_id = get_user_id_from_request(&request);
         let req = request.into_inner();
         if req.orders.len() > MAX_BATCH_ORDER_NUM {
             return Err(Status::invalid_argument(format!(
@@ -211,15 +218,16 @@ impl matchengine_server::Matchengine for GrpcHandler {
         }
 
         let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.batch_order_put(true, req) }));
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.batch_order_put(true, req, user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
     }
 
     async fn order_cancel(&self, request: tonic::Request<OrderCancelRequest>) -> Result<tonic::Response<OrderInfo>, tonic::Status> {
+        let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.order_cancel(true, request.into_inner()) }));
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.order_cancel(true, request.into_inner(), user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
@@ -228,8 +236,9 @@ impl matchengine_server::Matchengine for GrpcHandler {
         &self,
         request: tonic::Request<OrderCancelAllRequest>,
     ) -> Result<tonic::Response<OrderCancelAllResponse>, tonic::Status> {
+        let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
-            Box::pin(async move { ctrl.order_cancel_all(true, request.into_inner()) })
+            Box::pin(async move { ctrl.order_cancel_all(true, request.into_inner(),user_id) })
         });
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
@@ -246,9 +255,9 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn transfer(&self, request: Request<TransferRequest>) -> Result<Response<TransferResponse>, Status> {
-        // TODO: add signature verification
+        let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) =
-            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.transfer(true, request.into_inner()) }));
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.transfer(true, request.into_inner(), user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
@@ -257,6 +266,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
     // This is the only blocking call of the server
     #[cfg(debug_assertions)]
     async fn debug_dump(&self, request: Request<DebugDumpRequest>) -> Result<Response<DebugDumpResponse>, Status> {
+        block_non_admins(&request)?;
+
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_dump(request.into_inner())));
 
@@ -266,6 +277,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     #[cfg(debug_assertions)]
     async fn debug_reset(&self, request: Request<DebugResetRequest>) -> Result<Response<DebugResetResponse>, Status> {
+        block_non_admins(&request)?;
+
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_reset(request.into_inner())));
 
@@ -275,6 +288,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     #[cfg(debug_assertions)]
     async fn debug_reload(&self, request: Request<DebugReloadRequest>) -> Result<Response<DebugReloadResponse>, Status> {
+        block_non_admins(&request)?;
+
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_reload(request.into_inner())));
 
@@ -299,4 +314,20 @@ impl matchengine_server::Matchengine for GrpcHandler {
         log::warn!("Warning: Not avaliable in release build");
         Ok(Response::new(DebugReloadResponse {}))
     }
+}
+
+fn get_user_id_from_request<T>(request: &Request<T>) -> Uuid {
+    let extension_value: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
+    extension_value.user_id
+}
+
+fn block_non_admins<T>(request: &Request<T>) -> Result<(), Status> {
+    let extension_value: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
+
+    if !extension_value.is_admin {
+        log::error!("Reject GRPC call; User {} does not have admin rights.", extension_value.user_id);
+        return Err(Status::permission_denied("Requires admin role."));
+    }
+
+    Ok(())
 }
