@@ -248,6 +248,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn reload_markets(&self, request: Request<ReloadMarketsRequest>) -> Result<Response<SimpleSuccessResponse>, Status> {
+        block_non_admins(&request)?;
+
         //there should be no need to queue the opeartion
         let mut stub = self.stub.write().await;
 

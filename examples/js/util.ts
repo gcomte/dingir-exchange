@@ -1,4 +1,4 @@
-import { userId, fee, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_MARKET, ORDER_TYPE_LIMIT, VERBOSE } from "./config"; // dotenv
+import { TestUser, fee, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_MARKET, ORDER_TYPE_LIMIT, VERBOSE } from "./config"; // dotenv
 
 import Decimal from "decimal.js";
 let gaussian = require("gaussian");
