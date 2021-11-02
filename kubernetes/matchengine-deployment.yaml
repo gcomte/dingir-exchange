@@ -1,0 +1,41 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  generation: 1
+  labels:
+    app: dingir-matchengine
+  name: dingir-matchengine
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dingir-matchengine
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: dingir-matchengine
+    spec:
+      containers:
+        - image: gcr.io/bitraw-backend/dingir-matchengine
+          imagePullPolicy: IfNotPresent
+          name: dingir-matchengine
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          env:
+            - name: RUN_MODE
+              value: staging
+            - name: RUST_LOG
+              value: debug,matchengine=debug
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
