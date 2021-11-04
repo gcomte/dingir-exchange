@@ -120,6 +120,7 @@ async function main() {
     await rejectUserWithInvalidToken();
     await rejectUserWithInvalidSignatureToken();
     await rejectUserWithEpiredToken();
+    console.log("Authorization tests successful!");
   } catch (error) {
     console.error("Caught error:", error);
     process.exit(1);
