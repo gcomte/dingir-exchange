@@ -66,11 +66,31 @@ impl Claims {
     }
 
     fn validate_issue_date(&self) -> bool {
-        self.iat > get_current_unix_timestamp() - ONE_HOUR_IN_SECS
+        if self.iat < get_current_unix_timestamp() - ONE_HOUR_IN_SECS {
+            log::warn!(
+                "User {}: JWT iat [issued at] was over an hour ago! [ iat = {}, current timestamp = {}",
+                self.sub,
+                self.iat,
+                get_current_unix_timestamp()
+            );
+            return false;
+        }
+
+        true
     }
 
     fn validate_expiry_date(&self) -> bool {
-        self.exp < get_current_unix_timestamp() + ONE_HOUR_IN_SECS
+        if self.exp > get_current_unix_timestamp() + ONE_HOUR_IN_SECS {
+            log::warn!(
+                "User {}: JWT exp [expiration date] is more than one hour in the future! [ exp = {}, current timestamp = {}",
+                self.sub,
+                self.exp,
+                get_current_unix_timestamp()
+            );
+            return false;
+        }
+
+        true
     }
 
     fn has_role(&self, kc_role: &str) -> bool {
