@@ -1,5 +1,5 @@
-import { TestUser } from "./config"; // dotenv
-import { defaultClient as client } from "./client";
+import { TestUser } from "../config"; // dotenv
+import { defaultClient as client } from "../client";
 import * as assert from "assert";
 
 const PERMISSION_DENIED_CODE = 7;
