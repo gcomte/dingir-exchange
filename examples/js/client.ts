@@ -1,9 +1,9 @@
 import * as caller from "@eeston/grpc-caller";
 import Decimal from "decimal.js";
 import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
-import fetch from "node-fetch";
 import { TestUser, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "./config";
 import { assertDecimalEqual, decimalEqual } from "./util";
+import { Authentication } from "./authentication";
 
 const file = "../../orchestra/proto/exchange/matchengine.proto";
 const load = {
@@ -22,9 +22,7 @@ class Client {
   client: any;
   markets: Map<string, any> = new Map();
   assets: Map<string, any> = new Map();
-  adminToken: undefined;
-  user1Token: undefined;
-  user2Token: undefined;
+  auth: Authentication = new Authentication();
   constructor(server = process.env.GRPC_SERVER || "localhost:50051") {
     console.log("using grpc", server);
     this.client = caller(`${server}`, { file, load }, "Matchengine");
@@ -40,7 +38,7 @@ class Client {
   }
 
   async balanceQuery(user): Promise<Map<string, any>> {
-    return await this.balanceQueryBase(await this.getAuthTokenMeta(user));
+    return await this.balanceQueryBase(await this.auth.getAuthTokenMeta(user));
   }
 
   // This call should as the authentication fails
@@ -74,7 +72,7 @@ class Client {
   }
 
   async balanceQueryByAsset(user_id, asset) {
-    const allBalances = (await this.client.BalanceQuery({ assets: [asset] }, await this.getAuthTokenMeta(user_id))).balances;
+    const allBalances = (await this.client.BalanceQuery({ assets: [asset] }, await this.auth.getAuthTokenMeta(user_id))).balances;
     const balance = allBalances.find(item => item.asset_id == asset);
     let available = new Decimal(balance.available);
     let frozen = new Decimal(balance.frozen);
@@ -83,7 +81,7 @@ class Client {
   }
 
   async orderQuery(user_id, market) {
-    return await this.client.OrderQuery({ market }, await this.getAuthTokenMeta(user_id));
+    return await this.client.OrderQuery({ market }, await this.auth.getAuthTokenMeta(user_id));
   }
 
   async balanceUpdate(user, asset, business, business_id, delta, detail) {
@@ -95,7 +93,7 @@ class Client {
         delta,
         detail: JSON.stringify(detail),
       },
-      await this.getAuthTokenMeta(user)
+      await this.auth.getAuthTokenMeta(user)
     );
   }
   roundOrderInput(market, amount, price) {
@@ -136,7 +134,7 @@ class Client {
       const { user_id, market, order_side: side, amount, price } = order;
       console.log("putLimitOrder", { user_id, market, side, amount, price });
     }
-    return await this.client.OrderPut(order, await this.getAuthTokenMeta(user_id));
+    return await this.client.OrderPut(order, await this.auth.getAuthTokenMeta(user_id));
   }
   async batchOrderPut(market, reset, orders) {
     let order_reqs = [];
@@ -152,11 +150,11 @@ class Client {
   }
 
   async assetList() {
-    return (await this.client.AssetList({}, await this.getAuthTokenMeta(TestUser.USER1))).asset_lists;
+    return (await this.client.AssetList({}, await this.auth.getAuthTokenMeta(TestUser.USER1))).asset_lists;
   }
 
   async marketList(): Promise<Map<string, any>> {
-    const markets = (await this.client.MarketList({}, await this.getAuthTokenMeta(TestUser.USER1))).markets;
+    const markets = (await this.client.MarketList({}, await this.auth.getAuthTokenMeta(TestUser.USER1))).markets;
     let map = new Map();
     for (const m of markets) {
       map.set(m.name, m);
@@ -165,7 +163,7 @@ class Client {
   }
 
   async orderDetail(market, order_id) {
-    return await this.client.OrderDetail({ market, order_id }, await this.getAuthTokenMeta(TestUser.USER1));
+    return await this.client.OrderDetail({ market, order_id }, await this.auth.getAuthTokenMeta(TestUser.USER1));
   }
 
   async marketSummary(req) {
@@ -177,7 +175,7 @@ class Client {
     } else if (Array.isArray(req)) {
       markets = req;
     }
-    let resp = (await this.client.MarketSummary({ markets }, await this.getAuthTokenMeta(TestUser.USER1))).market_summaries;
+    let resp = (await this.client.MarketSummary({ markets }, await this.auth.getAuthTokenMeta(TestUser.USER1))).market_summaries;
     if (typeof req === "string") {
       return resp.find(item => item.name === req);
     }
@@ -185,19 +183,19 @@ class Client {
   }
 
   async reloadMarkets(user_id, from_scratch: boolean = false) {
-    return await this.client.ReloadMarkets({ from_scratch }, await this.getAuthTokenMeta(user_id));
+    return await this.client.ReloadMarkets({ from_scratch }, await this.auth.getAuthTokenMeta(user_id));
   }
 
   async orderCancel(user_id, market, order_id) {
-    return await this.client.OrderCancel({ user_id, market, order_id }, await this.getAuthTokenMeta(user_id));
+    return await this.client.OrderCancel({ user_id, market, order_id }, await this.auth.getAuthTokenMeta(user_id));
   }
 
   async orderCancelAll(user_id, market) {
-    return await this.client.OrderCancelAll({ user_id, market }, await this.getAuthTokenMeta(user_id));
+    return await this.client.OrderCancelAll({ user_id, market }, await this.auth.getAuthTokenMeta(user_id));
   }
 
   async orderDepth(market, limit, interval) {
-    return await this.client.OrderBookDepth({ market, limit, interval }, await this.getAuthTokenMeta(TestUser.USER1));
+    return await this.client.OrderBookDepth({ market, limit, interval }, await this.auth.getAuthTokenMeta(TestUser.USER1));
   }
 
   createTransferTx(from, to, asset, delta, memo) {
@@ -239,7 +237,7 @@ class Client {
 
   async transfer(from, to, asset, delta, memo = "") {
     let tx = this.createTransferTx(from, to, asset, delta, memo);
-    return await this.client.transfer(tx, await this.getAuthTokenMeta(TestUser.USER2));
+    return await this.client.transfer(tx, await this.auth.getAuthTokenMeta(TestUser.USER2));
   }
 
   async withdraw(user, asset, business, business_id, delta, detail) {
@@ -247,80 +245,19 @@ class Client {
       throw new Error("Parameter `delta` must be positive in `withdraw` function");
     }
     let tx = this.createWithdrawTx(user, asset, business, business_id, delta, detail);
-    return await this.client.BalanceUpdate(tx, await this.getAuthTokenMeta(user));
+    return await this.client.BalanceUpdate(tx, await this.auth.getAuthTokenMeta(user));
   }
 
   async debugDump(user) {
-    return await this.client.DebugDump({}, await this.getAuthTokenMeta(user));
+    return await this.client.DebugDump({}, await this.auth.getAuthTokenMeta(user));
   }
 
   async debugReset(user) {
-    return await this.client.DebugReset({}, await this.getAuthTokenMeta(user));
+    return await this.client.DebugReset({}, await this.auth.getAuthTokenMeta(user));
   }
 
   async debugReload(user) {
-    return await this.client.DebugReload({}, await this.getAuthTokenMeta(user));
-  }
-
-  async getAuthTokenMeta(user) {
-    switch (user) {
-      case TestUser.ADMIN:
-        return { Authorization: await this.getAdminAuthToken() };
-      case TestUser.USER1:
-        return { Authorization: await this.getUser1AuthToken() };
-      case TestUser.USER2:
-        return { Authorization: await this.getUser2AuthToken() };
-    }
-  }
-
-  async getAdminAuthToken() {
-    // cache the token
-    if (this.adminToken == undefined) {
-      this.adminToken = await this.getUserAuthToken(process.env.KC_ADMIN_NAME, process.env.KC_ADMIN_PASSWORD);
-    }
-
-    return this.adminToken;
-  }
-
-  async getUser1AuthToken() {
-    // cache the token
-    if (this.user1Token == undefined) {
-      this.user1Token = await this.getUserAuthToken(process.env.KC_USER1_NAME, process.env.KC_USER1_PASSWORD);
-    }
-
-    return this.user1Token;
-  }
-
-  async getUser2AuthToken() {
-    // cache the token
-    if (this.user2Token == undefined) {
-      this.user2Token = await this.getUserAuthToken(process.env.KC_USER2_NAME, process.env.KC_USER2_PASSWORD);
-    }
-
-    return this.user2Token;
-  }
-
-  async getUserAuthToken(user, password) {
-    const response = await fetch(
-      "https://" + process.env.KC_URL + "/auth/realms/" + process.env.KC_REALM + "/protocol/openid-connect/token",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body:
-          "client_id=" +
-          process.env.KC_CLIENT_ID +
-          "&client_secret=" +
-          process.env.KC_CLIENT_SECRET +
-          "&username=" +
-          user +
-          "&password=" +
-          password +
-          "&grant_type=password&scope=openid",
-      }
-    );
-    const data = await response.json();
-
-    return data.access_token;
+    return await this.client.DebugReload({}, await this.auth.getAuthTokenMeta(user));
   }
 }
 
