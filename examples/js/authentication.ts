@@ -7,13 +7,17 @@ class Authentication {
   user2Token: undefined;
 
   async getAuthTokenMeta(user) {
+    return { Authorization: await this.getAuthTokenMetaValue(user) };
+  }
+
+  async getAuthTokenMetaValue(user) {
     switch (user) {
       case TestUser.ADMIN:
-        return { Authorization: await this.getAdminAuthToken() };
+        return "Bearer " + (await this.getAdminAuthToken());
       case TestUser.USER1:
-        return { Authorization: await this.getUser1AuthToken() };
+        return "Bearer " + (await this.getUser1AuthToken());
       case TestUser.USER2:
-        return { Authorization: await this.getUser2AuthToken() };
+        return "Bearer " + (await this.getUser2AuthToken());
     }
   }
 
