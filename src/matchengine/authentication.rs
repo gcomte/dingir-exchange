@@ -15,7 +15,7 @@ pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
         Some(token) => {
             let token = token.to_str();
             match token {
-                Ok(jwt) => jwt,
+                Ok(jwt) => jwt.replace("Bearer ", ""),
                 Err(err) => return Err(Status::unauthenticated(err.to_string())),
             }
         }
@@ -25,7 +25,7 @@ pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
     log::debug!("Authentication token: {}", &jwt);
 
     let token = decode::<Claims>(
-        jwt,
+        &jwt,
         &DecodingKey::from_rsa_pem(settings.keycloak_pubkey.as_ref()).unwrap(),
         &Validation::new(Algorithm::RS512),
     );
