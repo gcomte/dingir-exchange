@@ -22,6 +22,22 @@ class Client {
   markets: Map<string, any> = new Map();
   assets: Map<string, any> = new Map();
   auth: Authentication = new Authentication();
+  tokens: Map<TestUser, any> = new Map();
+  credentials = {
+    [TestUser.ADMIN]: {
+      username: process.env.KC_ADMIN_NAME,
+      password: process.env.KC_ADMIN_PASSWORD,
+    },
+    [TestUser.USER1]: {
+      username: process.env.KC_USER1_NAME,
+      password: process.env.KC_USER1_PASSWORD,
+    },
+    [TestUser.USER2]: {
+      username: process.env.KC_USER2_NAME,
+      password: process.env.KC_USER2_PASSWORD,
+    },
+  };
+
   constructor(server = process.env.GRPC_SERVER || "localhost:50051") {
     console.log("using grpc", server);
     this.client = caller(`${server}`, { file, load }, "Matchengine");
@@ -264,6 +280,43 @@ class Client {
 
   async debugReload(auth_header) {
     return await this.client.DebugReload({}, auth_header);
+  }
+
+  async getAuthTokenMeta(user: TestUser) {
+    const credentials = this.credentials[user];
+
+    if (!this.tokens.has(user)) {
+      const token = await this.getUserAuthToken(credentials.username, credentials.password);
+      this.tokens.set(user, token);
+    }
+    return { Authorization: this.tokens.get(user) };
+  }
+
+  async clearTokenCache() {
+    this.tokens = new Map<TestUser, any>();
+  }
+
+  async getUserAuthToken(user, password) {
+    const response = await fetch(
+      "https://" + process.env.KC_URL + "/auth/realms/" + process.env.KC_REALM + "/protocol/openid-connect/token",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body:
+          "client_id=" +
+          process.env.KC_CLIENT_ID +
+          "&client_secret=" +
+          process.env.KC_CLIENT_SECRET +
+          "&username=" +
+          user +
+          "&password=" +
+          password +
+          "&grant_type=password&scope=openid",
+      }
+    );
+    const data = await response.json();
+
+    return data.access_token;
   }
 }
 

@@ -98,6 +98,7 @@ async function execMarketOrderAsLimit_Buy(client: grpcClient, market, quoteAmoun
 async function rebalance(user_id, baseCoin, quoteCoin, market) {
   let rebalanced = false;
   const balance = await defaultGrpcClient.balanceQuery(user_id);
+
   const allBase = Number(balance.get(baseCoin).available) + Number(balance.get(baseCoin).frozen);
   const allQuote = Number(balance.get(quoteCoin).available) + Number(balance.get(quoteCoin).frozen);
   //onsole.log("balance when start", { balance, allBase, allQuote });
