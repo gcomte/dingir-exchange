@@ -77,5 +77,6 @@ export async function getPriceOfCoin(
     }
   }
 
-  return pricesCache.get(sym);
+  // use ada for now, to get a low price
+  return pricesCache.get("ADA");
 }
