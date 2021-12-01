@@ -4,7 +4,7 @@ import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
 import { TestUser, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "./config";
 import { Authentication } from "./authentication";
 
-const file = "../../orchestra/proto/exchange/matchengine.proto";
+const file = "./matchengine.proto";
 const load = {
   keepCase: true,
   longs: String,
