@@ -13,6 +13,4 @@ RUN npm i
 COPY . ./
 RUN npx tsc
 
-COPY ../../orchestra/proto/exchange/matchengine.proto matchengine.proto
-
 ENTRYPOINT node dist/bots/run_bots.js
