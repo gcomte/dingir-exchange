@@ -186,6 +186,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-httpauth"
+version = "0.6.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5482f856b4f3fe60989dd0009e4e6b347c0448b83e0ea36576f541539a06f47b"
+dependencies = [
+ "actix-service",
+ "actix-web",
+ "base64 0.13.0",
+ "futures-util",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -661,6 +674,7 @@ version = "0.1.0"
 dependencies = [
  "actix-rt",
  "actix-web",
+ "actix-web-httpauth",
  "anyhow",
  "arrayref",
  "bytes",
