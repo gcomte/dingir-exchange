@@ -5,7 +5,7 @@ import { sleep } from "../util";
 import { VERBOSE, TestUser } from "../config";
 import { rebalance, printBalance, totalBalance } from "./utils";
 import { executeOrders } from "./executor";
-import { getPriceOfCoin } from "../exchange_helper";
+import { depositAssets, getPriceOfCoin } from "../exchange_helper";
 
 //const VERBOSE = false;
 console.log({ VERBOSE });
@@ -17,10 +17,11 @@ const quoteCoin = "FEE";
 async function main(user_id: TestUser) {
   await defaultClient.connect();
 
+  await depositAssets({ BTC: "10", FEE: "10" }, user_id);
   await rebalance(user_id, baseCoin, quoteCoin, market);
 
   let bot = new MMByPriceBot();
-  bot.init(user_id, "bot1", defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
+  bot.init(user_id, "bot" + user_id, defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
   bot.priceFn = async function (coin: string) {
     return await getPriceOfCoin(coin, 5, "coinstats");
   };
