@@ -34,6 +34,14 @@ class RESTClient {
       throw new Error(`request failed with ${resp.status} ${resp.statusText}`);
     }
   }
+
+  async closed_orders(token: string) {
+    if (token !== "") {
+      this.client.defaults.headers.common["Authorization"] = "LoremIpsum";
+    }
+
+    await this.client.get(`/closedorders/ETH_USDT`);
+  }
 }
 
 let defaultRESTClient = new RESTClient();
