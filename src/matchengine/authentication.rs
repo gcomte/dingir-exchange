@@ -1,16 +1,43 @@
 use crate::config::Settings;
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use actix_web::dev::ServiceRequest;
+use actix_web::HttpMessage;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Status};
 use uuid::Uuid;
 
 const ONE_HOUR_IN_SECS: u64 = 60 * 60;
 
-pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
+fn validate_jwt(jwt: &str) -> Result<TokenData<Claims>, Box<dyn Error + Send + Sync>> {
     let settings = Settings::new();
     log::debug!("Keycloak public key: {}", settings.keycloak_pubkey);
+    log::debug!("Authentication token: {}", &jwt);
 
+    let token = decode::<Claims>(
+        jwt,
+        &DecodingKey::from_rsa_pem(settings.keycloak_pubkey.as_ref()).unwrap(),
+        &Validation::new(Algorithm::RS512),
+    );
+
+    let token = match token {
+        Ok(t) => t,
+        Err(err) => {
+            log::warn!("KeyCloak authentication failed: {}", err);
+            return Err(Box::new(err));
+        }
+    };
+
+    // Double check time-based validity of token
+    if !token.claims.ensure_timely_boundaries() {
+        return Err(From::from("Token does not fulfill timely boundaries."));
+    }
+
+    Ok(token)
+}
+
+pub fn grpc_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
     let jwt = match req.metadata().get("authorization") {
         Some(token) => {
             let token = token.to_str();
@@ -22,34 +49,32 @@ pub fn interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
         None => return Err(Status::unauthenticated("Token not found")),
     };
 
-    log::debug!("Authentication token: {}", &jwt);
-
-    let token = decode::<Claims>(
-        &jwt,
-        &DecodingKey::from_rsa_pem(settings.keycloak_pubkey.as_ref()).unwrap(),
-        &Validation::new(Algorithm::RS512),
-    );
-
-    let token = match token {
-        Ok(t) => t,
-        Err(err) => {
-            log::error!("KeyCloak authentication failed: {}", err);
-            return Err(Status::unauthenticated(err.to_string()));
-        }
+    let token = match validate_jwt(&jwt) {
+        Ok(jwt) => jwt,
+        Err(err) => return Err(Status::unauthenticated(err.to_string())),
     };
 
-    // Double check time-based validity of token
-    if !token.claims.ensure_timely_boundaries() {
-        return Err(Status::unauthenticated("Token does not fulfill timely boundaries."));
-    }
-
     // Add extensions to request
-    req.extensions_mut().insert(UserExtension {
-        is_admin: token.claims.has_role(&settings.keycloak_admin_role),
-        user_id: token.claims.sub,
-    });
+    req.extensions_mut().insert(get_user_extension(token));
 
     Ok(req)
+}
+
+pub fn rest_auth(req: ServiceRequest, token: &str) -> Result<ServiceRequest, Box<dyn Error + Send + Sync>> {
+    let jwt = token.replace("Bearer ", "");
+    let token = validate_jwt(&jwt)?;
+    req.extensions_mut().insert(get_user_extension(token));
+
+    Ok(req)
+}
+
+fn get_user_extension(token: TokenData<Claims>) -> UserExtension {
+    let settings = Settings::new();
+
+    UserExtension {
+        is_admin: token.claims.has_role(&settings.keycloak_admin_role),
+        user_id: token.claims.sub,
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -71,7 +71,7 @@ async fn grpc_run(mut grpc: GrpcHandler) -> Result<(), Box<dyn std::error::Error
     });
 
     tonic::transport::Server::builder()
-        .add_service(MatchengineServer::with_interceptor(grpc, authentication::interceptor))
+        .add_service(MatchengineServer::with_interceptor(grpc, authentication::grpc_interceptor))
         .serve_with_shutdown(addr, async {
             rx.await.ok();
         })

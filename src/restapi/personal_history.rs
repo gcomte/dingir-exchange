@@ -1,3 +1,4 @@
+use crate::matchengine::authentication::UserExtension;
 use crate::models::tablenames::{INTERNALTX, ORDERHISTORY};
 use crate::models::{DateTimeMilliseconds, DecimalDbType, OrderHistory, TimestampDbType};
 use crate::restapi::errors::RpcError;
@@ -16,13 +17,7 @@ pub struct OrderResponse {
 #[api_v2_operation]
 pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<OrderResponse>, actix_web::Error> {
     let market = req.match_info().get("market").unwrap();
-    let user_id = req.match_info().get("user_id").unwrap_or_default().parse::<i32>();
-    let user_id = match user_id {
-        Err(_) => {
-            return Err(RpcError::bad_request("invalid user_id").into());
-        }
-        _ => user_id.unwrap(),
-    };
+    let user_id = req.extensions().get::<UserExtension>().unwrap().user_id;
     let qstring = qstring::QString::from(req.query_string());
     let limit = min(100, qstring.get("limit").unwrap_or_default().parse::<usize>().unwrap_or(20));
     let offset = qstring.get("offset").unwrap_or_default().parse::<usize>().unwrap_or(0);
@@ -38,18 +33,18 @@ pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Js
         table, condition, limit, offset
     );
     let orders: Vec<OrderHistory> = if market == "all" {
-        sqlx::query_as(&order_query).bind(user_id)
+        sqlx::query_as(&order_query).bind(user_id.to_string())
     } else {
-        sqlx::query_as(&order_query).bind(market).bind(user_id)
+        sqlx::query_as(&order_query).bind(market).bind(user_id.to_string())
     }
     .fetch_all(&data.db)
     .await
     .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
     let count_query = format!("select count(*) from {} where {}", table, condition);
     let total: i64 = if market == "all" {
-        sqlx::query_scalar(&count_query).bind(user_id)
+        sqlx::query_scalar(&count_query).bind(user_id.to_string())
     } else {
-        sqlx::query_scalar(&count_query).bind(market).bind(user_id)
+        sqlx::query_scalar(&count_query).bind(market).bind(user_id.to_string())
     }
     .fetch_one(&data.db)
     .await
@@ -130,14 +125,14 @@ const fn default_zero() -> usize {
     0
 }
 
-/// `/internal_txs/{user_id}`
+/// `/internal_txs`
 #[api_v2_operation]
 pub async fn my_internal_txs(
-    user_id: web::Path<i32>,
+    req: HttpRequest,
     query: web::Query<InternalTxQuery>,
     data: web::Data<AppState>,
 ) -> Result<Json<Vec<InternalTxResponse>>, actix_web::Error> {
-    let user_id = user_id.into_inner();
+    let user_id = req.extensions().get::<UserExtension>().unwrap().user_id;
     let limit = min(query.limit, 100);
 
     let base_query: &'static str = const_format::formatcp!(
@@ -175,8 +170,8 @@ where "#,
     let query_as = sqlx::query_as(sql_query.as_str());
 
     let query_as = match query.side {
-        Side::To | Side::From => query_as.bind(user_id),
-        Side::Both => query_as.bind(user_id).bind(user_id),
+        Side::To | Side::From => query_as.bind(user_id.to_string()),
+        Side::Both => query_as.bind(user_id.to_string()).bind(user_id.to_string()),
     };
 
     let query_as = match (query.start_time, query.end_time) {
