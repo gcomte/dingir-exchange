@@ -1,4 +1,8 @@
-use actix_web::{App, HttpServer};
+use actix_web::{dev::ServiceRequest, App, Error, HttpServer};
+use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
+use actix_web_httpauth::extractors::AuthenticationError;
+use actix_web_httpauth::middleware::HttpAuthentication;
+use dingir_exchange::matchengine::authentication;
 use dingir_exchange::restapi::manage::market;
 use dingir_exchange::restapi::personal_history::{my_internal_txs, my_orders};
 use dingir_exchange::restapi::public_history::{order_trades, recent_trades};
@@ -44,6 +48,7 @@ async fn main() -> std::io::Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(HttpAuthentication::bearer(validator))
             .app_data(user_map.clone())
             .app_data(AppCache::new())
             .wrap_api()
@@ -52,8 +57,8 @@ async fn main() -> std::io::Result<()> {
                     .route("/ping", web::get().to(ping))
                     .route("/recenttrades/{market}", web::get().to(recent_trades))
                     .route("/ordertrades/{market}/{order_id}", web::get().to(order_trades))
-                    .route("/closedorders/{market}/{user_id}", web::get().to(my_orders))
-                    .route("/internal_txs/{user_id}", web::get().to(my_internal_txs))
+                    .route("/closedorders/{market}", web::get().to(my_orders))
+                    .route("/internal_txs", web::get().to(my_internal_txs))
                     .route("/ticker_{ticker_inv}/{market}", web::get().to(ticker))
                     .service(
                         web::scope("/tradingview")
@@ -85,6 +90,15 @@ async fn main() -> std::io::Result<()> {
     };
 
     server.bind("0.0.0.0:50053")?.run().await
+}
+
+async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
+    let config = req.app_data::<Config>().cloned().unwrap_or_default();
+
+    match authentication::rest_auth(req, credentials.token()) {
+        Ok(res) => Ok(res),
+        Err(_) => Err(AuthenticationError::from(config).into()),
+    }
 }
 
 #[api_v2_operation]
