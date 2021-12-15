@@ -665,15 +665,3 @@ impl MsgDataTransformer<models::UserTrade> for BidTrade {
         })
     }
 }
-
-impl<'r> From<&'r super::TransferMessage> for models::InternalTx {
-    fn from(origin: &'r super::TransferMessage) -> Self {
-        Self {
-            time: FTimestamp(origin.time).into(),
-            user_from: origin.user_from.to_string(),
-            user_to: origin.user_to.to_string(),
-            asset: origin.asset.clone(),
-            amount: DecimalDbType::from_str(&origin.amount).unwrap_or_else(decimal_warning),
-        }
-    }
-}
