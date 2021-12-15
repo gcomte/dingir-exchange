@@ -4,7 +4,7 @@ use actix_web_httpauth::extractors::AuthenticationError;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use dingir_exchange::matchengine::authentication;
 use dingir_exchange::restapi::manage::market;
-use dingir_exchange::restapi::personal_history::{my_internal_txs, my_orders};
+use dingir_exchange::restapi::personal_history::my_orders;
 use dingir_exchange::restapi::public_history::{order_trades, recent_trades};
 use dingir_exchange::restapi::state::{AppCache, AppState};
 use dingir_exchange::restapi::tradingview::{chart_config, history, search_symbols, symbols, ticker, unix_timestamp};
@@ -58,7 +58,6 @@ async fn main() -> std::io::Result<()> {
                     .route("/recenttrades/{market}", web::get().to(recent_trades))
                     .route("/ordertrades/{market}/{order_id}", web::get().to(order_trades))
                     .route("/closedorders/{market}", web::get().to(my_orders))
-                    .route("/internal_txs", web::get().to(my_internal_txs))
                     .route("/ticker_{ticker_inv}/{market}", web::get().to(ticker))
                     .service(
                         web::scope("/tradingview")

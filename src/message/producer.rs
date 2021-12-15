@@ -184,7 +184,6 @@ impl<T: MessageScheme> RdProducerContext<T> {
 
 pub const BALANCES_TOPIC: &str = "balances";
 pub const DEPOSITS_TOPIC: &str = "deposits";
-pub const INTERNALTX_TOPIC: &str = "internaltransfer";
 pub const ORDERS_TOPIC: &str = "orders";
 pub const TRADES_TOPIC: &str = "trades";
 pub const UNIFY_TOPIC: &str = "unifyevents";
@@ -196,7 +195,6 @@ use std::collections::LinkedList;
 #[derive(Default)]
 pub struct SimpleMessageScheme {
     balances_list: LinkedList<String>,
-    internaltxs_list: LinkedList<String>,
     orders_list: LinkedList<String>,
     trades_list: LinkedList<String>,
     users_list: LinkedList<String>,
@@ -212,17 +210,12 @@ impl MessageScheme for SimpleMessageScheme {
         vec![("queue.buffering.max.ms", "1")]
     }
     fn is_full(&self) -> bool {
-        self.balances_list.len() >= 100
-            || self.internaltxs_list.len() >= 100
-            || self.orders_list.len() >= 100
-            || self.trades_list.len() >= 100
-            || self.users_list.len() >= 100
+        self.balances_list.len() >= 100 || self.orders_list.len() >= 100 || self.trades_list.len() >= 100 || self.users_list.len() >= 100
     }
 
     fn on_message(&mut self, title_tip: &'static str, message: String) {
         let list = match title_tip {
             BALANCES_TOPIC => &mut self.balances_list,
-            INTERNALTX_TOPIC => &mut self.internaltxs_list,
             ORDERS_TOPIC => &mut self.orders_list,
             TRADES_TOPIC => &mut self.trades_list,
             USER_TOPIC => &mut self.users_list,
@@ -238,15 +231,8 @@ impl MessageScheme for SimpleMessageScheme {
         let mut list = &mut self.balances_list;
         let mut topic_name = BALANCES_TOPIC;
 
-        let mut candi_list = [
-            &mut self.internaltxs_list,
-            &mut self.orders_list,
-            &mut self.trades_list,
-            &mut self.users_list,
-        ];
-        let iters = [INTERNALTX_TOPIC, ORDERS_TOPIC, TRADES_TOPIC, USER_TOPIC]
-            .iter()
-            .zip(&mut candi_list);
+        let mut candi_list = [&mut self.orders_list, &mut self.trades_list, &mut self.users_list];
+        let iters = [ORDERS_TOPIC, TRADES_TOPIC, USER_TOPIC].iter().zip(&mut candi_list);
 
         for i in iters.into_iter() {
             let (tp_name, l) = i;
@@ -309,7 +295,7 @@ impl MessageScheme for FullOrderMessageScheme {
 
     fn on_message(&mut self, title_tip: &'static str, message: String) {
         match title_tip {
-            DEPOSITS_TOPIC | INTERNALTX_TOPIC | ORDERS_TOPIC | TRADES_TOPIC | USER_TOPIC | WITHDRAWS_TOPIC => {
+            DEPOSITS_TOPIC | ORDERS_TOPIC | TRADES_TOPIC | USER_TOPIC | WITHDRAWS_TOPIC => {
                 self.ordered_list.push_back((title_tip, message))
             }
             _ => {}

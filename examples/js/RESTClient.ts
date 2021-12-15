@@ -14,27 +14,6 @@ class RESTClient {
     });
   }
 
-  async internal_txs(
-    user_id: number | string,
-    params?: {
-      limit?: number;
-      offset?: number;
-      start_time?: number;
-      end_time?: number;
-      order?: "asc" | "desc";
-      side?: "from" | "to" | "both";
-    }
-  ) {
-    let resp = await this.client.get(`/internal_txs/${user_id}`, {
-      params: _.pickBy(params, _.identity),
-    });
-    if (resp.status === 200) {
-      return resp.data;
-    } else {
-      throw new Error(`request failed with ${resp.status} ${resp.statusText}`);
-    }
-  }
-
   async closed_orders(token: string) {
     if (token !== "") {
       this.client.defaults.headers.common["Authorization"] = "LoremIpsum";
