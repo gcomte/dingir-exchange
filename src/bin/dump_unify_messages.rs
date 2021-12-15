@@ -18,7 +18,6 @@ use fluidex_common::rdkafka::message::{BorrowedMessage, Message};
 fn get_msg_tag_from_topic(t: &str) -> Option<&'static str> {
     Some(match t {
         "deposits" => "DepositMessage",
-        "internaltransfer" => "TransferMessage",
         "orders" => "OrderMessage",
         "trades" => "TradeMessage",
         "withdraws" => "WithdrawMessage",
