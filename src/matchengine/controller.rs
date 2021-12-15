@@ -563,106 +563,6 @@ impl Controller {
         Ok(())
     }
 
-    pub fn transfer(&mut self, real: bool, req: TransferRequest, user_id: Uuid) -> Result<TransferResponse, Status> {
-        if !self.check_service_available() {
-            return Err(Status::unavailable(""));
-        }
-
-        let asset = &req.asset;
-        if !self.balance_manager.asset_manager.asset_exist(asset) {
-            return Err(Status::invalid_argument("invalid asset"));
-        }
-
-        let to_user_id = req.to.clone();
-
-        let balance_manager = &self.balance_manager;
-        let balance_from = balance_manager.get(user_id, BalanceType::AVAILABLE, asset);
-
-        let zero = Decimal::from(0);
-        let delta = Decimal::from_str(&req.delta).unwrap_or(zero);
-
-        if delta <= zero || delta > balance_from {
-            return Ok(TransferResponse {
-                success: false,
-                asset: asset.to_owned(),
-                balance_from: balance_from.to_string(),
-            });
-        }
-
-        let prec = self.balance_manager.asset_manager.asset_prec_show(asset);
-        let change = delta.round_dp(prec);
-
-        let business = "transfer";
-        let timestamp = FTimestamp(current_timestamp());
-        let business_id = (timestamp.0 * 1_000_f64) as u64; // milli-seconds
-        let detail_json: serde_json::Value = if req.memo.is_empty() {
-            json!({})
-        } else {
-            serde_json::from_str(req.memo.as_str()).map_err(|_| Status::invalid_argument("invalid memo"))?
-        };
-
-        // Get market price of requested base asset and quote asset of USDT.
-        let market_price = self
-            .asset_market_names
-            .get(&(asset.to_owned(), "USDT".to_owned()))
-            .map_or(Decimal::zero(), |market_name| self.markets.get(market_name).unwrap().price);
-        let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
-        self.update_controller
-            .update_user_balance(
-                &mut self.balance_manager,
-                persistor,
-                BalanceUpdateParams {
-                    balance_type: BalanceType::AVAILABLE,
-                    business_type: BusinessType::Transfer,
-                    user_id,
-                    asset: asset.to_owned(),
-                    business: business.to_owned(),
-                    business_id,
-                    market_price,
-                    change: -change,
-                    detail: detail_json.clone(),
-                },
-            )
-            .map_err(|e| Status::invalid_argument(format!("{}", e)))?;
-
-        let persistor = if real { &mut self.persistor } else { &mut self.dummy_persistor };
-        self.update_controller
-            .update_user_balance(
-                &mut self.balance_manager,
-                persistor,
-                BalanceUpdateParams {
-                    balance_type: BalanceType::AVAILABLE,
-                    business_type: BusinessType::Transfer,
-                    user_id: to_user_id.parse().unwrap(),
-                    asset: asset.to_owned(),
-                    business: business.to_owned(),
-                    business_id,
-                    market_price: Decimal::zero(),
-                    change,
-                    detail: detail_json,
-                },
-            )
-            .map_err(|e| Status::invalid_argument(format!("{}", e)))?;
-
-        if real {
-            self.persistor.put_transfer(models::InternalTx {
-                time: timestamp.into(),
-                user_from: user_id.to_string(),
-                user_to: to_user_id,
-                asset: asset.to_owned(),
-                amount: change,
-            });
-
-            self.append_operation_log(OPERATION_TRANSFER, &req, user_id);
-        }
-
-        Ok(TransferResponse {
-            success: true,
-            asset: asset.to_owned(),
-            balance_from: (balance_from - change).to_string(),
-        })
-    }
-
     pub async fn debug_reset(&mut self, _req: DebugResetRequest) -> Result<DebugResetResponse, Status> {
         async {
             log::info!("do full reset: memory and db");
@@ -759,9 +659,6 @@ impl Controller {
             }
             OPERATION_BATCH_ORDER_PUT => {
                 self.batch_order_put(false, serde_json::from_str(params)?, user_id)?;
-            }
-            OPERATION_TRANSFER => {
-                self.transfer(false, serde_json::from_str(params)?, user_id)?;
             }
             _ => bail!("invalid operation {}", method),
         }
