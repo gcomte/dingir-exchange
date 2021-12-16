@@ -3,8 +3,8 @@ import { defaultClient as client } from "../client";
 import { depositAssets } from "../exchange_helper";
 import { fee, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config";
 import { strict as assert } from "assert";
+import { Authentication } from "../authentication";
 
-const botsIds = [1, 2, 3, 4, 5];
 const apiServer = process.env.API_ENDPOINT || "0.0.0.0:8765";
 
 async function initClient() {
@@ -12,14 +12,12 @@ async function initClient() {
 }
 
 async function initAssets() {
-  for (const user_id of botsIds) {
-    await depositAssets({ USDT: "500000.0" }, user_id);
-    for (const [name, info] of client.markets) {
-      const base = info.base;
-      const depositReq = {};
-      depositReq[base] = "10";
-      await depositAssets(depositReq, user_id);
-    }
+  await depositAssets({ USDT: "500000.0" }, TestUser.USER1);
+  for (const [name, info] of client.markets) {
+    const base = info.base;
+    const depositReq = {};
+    depositReq[base] = "10";
+    await depositAssets(depositReq, TestUser.USER1);
   }
 }
 
@@ -32,14 +30,10 @@ async function mainTest() {
 async function putOrdersTest() {
   console.log("putOrdersTest Begin");
 
-  const userId1 = botsIds[0];
-  const userId2 = botsIds[1];
-  const oldOrderNum1 = await openOrderNum(userId1);
-  const oldOrderNum2 = await openOrderNum(userId2);
+  const oldOrderNum1 = await openOrderNum(TestUser.USER1);
 
-  const res = await client.batchOrderPut("ETH_USDT", false, [
+  const res = await client.batchOrderPut(TestUser.USER1, "ETH_USDT", false, [
     {
-      user_id: botsIds[0],
       market: "ETH_USDT",
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
@@ -49,7 +43,6 @@ async function putOrdersTest() {
       maker_fee: fee,
     },
     {
-      user_id: botsIds[1],
       market: "ETH_USDT",
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
@@ -60,11 +53,8 @@ async function putOrdersTest() {
     },
   ]);
 
-  const newOrderNum1 = await openOrderNum(userId1);
-  const newOrderNum2 = await openOrderNum(userId2);
-
-  assert.equal(newOrderNum1 - oldOrderNum1, 1);
-  assert.equal(newOrderNum2 - oldOrderNum2, 1);
+  const newOrderNum1 = await openOrderNum(TestUser.USER1);
+  assert.equal(newOrderNum1 - oldOrderNum1, 2);
 
   console.log("putOrdersTest End");
 }
@@ -73,16 +63,11 @@ async function putOrdersTest() {
 async function putAndResetOrdersTest() {
   console.log("putAndResetOrdersTest Begin");
 
-  const userId1 = botsIds[0];
-  const userId2 = botsIds[1];
-  const oldOrderNum1 = await openOrderNum(userId1);
+  const oldOrderNum1 = await openOrderNum(TestUser.USER1);
   assert(oldOrderNum1 > 0);
-  const oldOrderNum2 = await openOrderNum(userId2);
-  assert(oldOrderNum2 > 0);
 
-  const res = await client.batchOrderPut("ETH_USDT", true, [
+  const res = await client.batchOrderPut(TestUser.USER1, "ETH_USDT", true, [
     {
-      user_id: botsIds[0],
       market: "ETH_USDT",
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
@@ -92,7 +77,6 @@ async function putAndResetOrdersTest() {
       maker_fee: fee,
     },
     {
-      user_id: botsIds[1],
       market: "ETH_USDT",
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
@@ -103,16 +87,16 @@ async function putAndResetOrdersTest() {
     },
   ]);
 
-  const newOrderNum1 = await openOrderNum(userId1);
-  const newOrderNum2 = await openOrderNum(userId2);
-  assert.equal(newOrderNum1, 1);
-  assert.equal(newOrderNum2, 1);
+  const newOrderNum1 = await openOrderNum(TestUser.USER1);
+  assert.equal(newOrderNum1, 2);
 
   console.log("putAndResetOrdersTest End");
 }
 
 async function openOrderNum(userId) {
-  return (await axios.get(`http://${apiServer}/api/exchange/action/orders/ETH_USDT/${userId}`)).data.orders.length;
+  const auth = new Authentication();
+  axios.defaults.headers.common["Authorization"] = await auth.getAuthTokenMetaValue(userId);
+  return (await axios.get(`http://${apiServer}/api/exchange/action/orders/ETH_USDT`)).data.orders.length;
 }
 
 async function main() {

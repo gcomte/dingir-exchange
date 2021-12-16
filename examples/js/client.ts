@@ -2,7 +2,6 @@ import * as caller from "@eeston/grpc-caller";
 import Decimal from "decimal.js";
 import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
 import { TestUser, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "./config";
-import { assertDecimalEqual, decimalEqual } from "./util";
 import { Authentication } from "./authentication";
 
 const file = "../../orchestra/proto/exchange/matchengine.proto";
@@ -136,17 +135,20 @@ class Client {
     }
     return await this.client.OrderPut(order, await this.auth.getAuthTokenMeta(user_id));
   }
-  async batchOrderPut(market, reset, orders) {
+  async batchOrderPut(user_id, market, reset, orders) {
     let order_reqs = [];
     for (const o of orders) {
-      const { user_id, market, order_side, order_type, amount, price, taker_fee, maker_fee } = o;
+      const { market, order_side, order_type, amount, price, taker_fee, maker_fee } = o;
       order_reqs.push(await this.createOrder(user_id, market, order_side, order_type, amount, price, taker_fee, maker_fee));
     }
-    return await this.client.batchOrderPut({
-      market,
-      reset,
-      orders: order_reqs,
-    });
+    return await this.client.batchOrderPut(
+      {
+        market,
+        reset,
+        orders: order_reqs,
+      },
+      await this.auth.getAuthTokenMeta(user_id)
+    );
   }
 
   async assetList() {
