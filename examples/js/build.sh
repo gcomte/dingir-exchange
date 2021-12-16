@@ -2,4 +2,4 @@
 
 cp ../../orchestra/proto/exchange/matchengine.proto ./matchengine.proto
 
-docker build --tag bitraw-bots .
+docker build --tag gcr.io/bitraw-backend/bitraw-bots .
