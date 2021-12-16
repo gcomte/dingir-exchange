@@ -51,6 +51,13 @@ export async function putRandOrder(userId, market) {
 
 let pricesCache = new Map();
 let pricesUpdatedTime = 0;
+
+const randMinMax = (min: number, max: number) => {
+  const val = min + Math.random() * (max - min);
+
+  return val;
+};
+
 export async function getPriceOfCoin(
   sym,
   timeout = 60, // default 1min
@@ -78,5 +85,5 @@ export async function getPriceOfCoin(
   }
 
   // use ada for now, to get a low price
-  return pricesCache.get("ADA");
+  return pricesCache.get("ADA") * randMinMax(0.97, 1.03);
 }
