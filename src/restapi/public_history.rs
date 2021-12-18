@@ -44,7 +44,7 @@ pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> Resul
 #[derive(sqlx::FromRow, Debug, Clone)]
 struct QueriedUserTrade {
     pub time: TimestampDbType,
-    pub user_id: i32,
+    pub user_id: String,
     pub trade_id: i64,
     pub order_id: i64,
     pub price: DecimalDbType,
@@ -59,7 +59,7 @@ fn sqlverf_ticker() -> impl std::any::Any {
         QueriedUserTrade,
         "select time, user_id, trade_id, order_id,
         price, amount, quote_amount, fee
-        from user_trade where market = $1 and order_id = $2 
+        from user_trade where market = $1 and order_id = $2
         order by trade_id, time asc",
         "USDT_ETH",
         10000,
@@ -78,7 +78,7 @@ pub async fn order_trades(
         "
     select time, user_id, trade_id, order_id,
     price, amount, quote_amount, fee
-    from {} where market = $1 and order_id = $2 
+    from {} where market = $1 and order_id = $2
     order by trade_id, time asc",
         USERTRADE
     );
