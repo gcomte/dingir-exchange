@@ -248,7 +248,7 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn reload_markets(&self, request: Request<ReloadMarketsRequest>) -> Result<Response<SimpleSuccessResponse>, Status> {
-        block_non_admins(&request)?;
+        grpc_block_non_admins(&request)?;
 
         //there should be no need to queue the opeartion
         let mut stub = self.stub.write().await;
@@ -261,7 +261,7 @@ impl matchengine_server::Matchengine for GrpcHandler {
     // This is the only blocking call of the server
     #[cfg(debug_assertions)]
     async fn debug_dump(&self, request: Request<DebugDumpRequest>) -> Result<Response<DebugDumpResponse>, Status> {
-        block_non_admins(&request)?;
+        grpc_block_non_admins(&request)?;
 
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_dump(request.into_inner())));
@@ -272,7 +272,7 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     #[cfg(debug_assertions)]
     async fn debug_reset(&self, request: Request<DebugResetRequest>) -> Result<Response<DebugResetResponse>, Status> {
-        block_non_admins(&request)?;
+        grpc_block_non_admins(&request)?;
 
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_reset(request.into_inner())));
@@ -283,7 +283,7 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     #[cfg(debug_assertions)]
     async fn debug_reload(&self, request: Request<DebugReloadRequest>) -> Result<Response<DebugReloadResponse>, Status> {
-        block_non_admins(&request)?;
+        grpc_block_non_admins(&request)?;
 
         let ControllerDispatch(act, rt) =
             ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(ctrl.debug_reload(request.into_inner())));
@@ -312,15 +312,15 @@ impl matchengine_server::Matchengine for GrpcHandler {
 }
 
 fn get_user_id_from_request<T>(request: &Request<T>) -> Uuid {
-    let extension_value: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
-    extension_value.user_id
+    let user_extension: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
+    user_extension.user_id
 }
 
-fn block_non_admins<T>(request: &Request<T>) -> Result<(), Status> {
-    let extension_value: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
+fn grpc_block_non_admins<T>(request: &Request<T>) -> Result<(), Status> {
+    let user_extension: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
 
-    if !extension_value.is_admin {
-        log::error!("Reject GRPC call; User {} does not have admin rights.", extension_value.user_id);
+    if !user_extension.is_admin {
+        log::warn!("Reject GRPC call; User {} does not have admin rights.", user_extension.user_id);
         return Err(Status::permission_denied("Requires admin role."));
     }
 
