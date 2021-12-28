@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Status};
 use uuid::Uuid;
 
+const MARKET_RELOAD_ENDPOINT: &str = "/api/exchange/panel/manage/market/reload";
 const ONE_HOUR_IN_SECS: u64 = 60 * 60;
 
 fn validate_jwt(jwt: &str) -> Result<TokenData<Claims>, Box<dyn Error + Send + Sync>> {
@@ -60,10 +61,15 @@ pub fn grpc_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
     Ok(req)
 }
 
-pub fn rest_auth(req: ServiceRequest, token: &str) -> Result<ServiceRequest, Box<dyn Error + Send + Sync>> {
-    let jwt = token.replace("Bearer ", "");
-    let token = validate_jwt(&jwt)?;
+pub fn rest_auth(req: ServiceRequest, jwt: &str) -> Result<ServiceRequest, Box<dyn Error + Send + Sync>> {
+    // let jwt = jwt.replace("Bearer ", ""); // already done by actix-web
+    let token = validate_jwt(jwt)?;
     req.extensions_mut().insert(get_user_extension(token));
+
+    // reload calls the GRPC interface and must therefore forward the JWT
+    if req.path().eq(MARKET_RELOAD_ENDPOINT) {
+        req.extensions_mut().insert(JwtExtension { jwt: jwt.to_string() });
+    }
 
     Ok(req)
 }
@@ -132,6 +138,12 @@ struct RealmAccess {
     roles: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct JwtExtension {
+    pub jwt: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct UserExtension {
     pub user_id: Uuid,
     pub is_admin: bool,
