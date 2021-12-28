@@ -1,8 +1,9 @@
-use actix_web::{dev::ServiceRequest, App, Error, HttpServer};
+use actix_web::{dev::ServiceRequest, App, Error, HttpMessage, HttpServer};
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use dingir_exchange::matchengine::authentication;
+use dingir_exchange::matchengine::authentication::UserExtension;
 use dingir_exchange::restapi::manage::market;
 use dingir_exchange::restapi::personal_history::my_orders;
 use dingir_exchange::restapi::public_history::{order_trades, recent_trades};
@@ -14,6 +15,16 @@ use paperclip::actix::{api_v2_operation, OpenApiExt};
 use sqlx::postgres::Postgres;
 use sqlx::Pool;
 use std::convert::TryFrom;
+
+const PUBLIC_ENDPOINTS: [&str; 6] = [
+    "/api/exchange/panel/ping",
+    "/api/exchange/panel/recenttrades",
+    "/api/exchange/panel/ordertrades",
+    "/api/exchange/panel/ticker_",
+    "/api/exchange/panel/tradingview",
+    "/api/spec",
+];
+const ADMIN_ENDPOINTS: [&str; 1] = ["/api/exchange/panel/manage"];
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -54,7 +65,8 @@ async fn main() -> std::io::Result<()> {
             .wrap_api()
             .service(
                 web::scope("/api/exchange/panel")
-                    .route("/ping", web::get().to(ping))
+                    .route("/ping", web::get().to(ping)) // ping that doesn't need auth
+                    .route("/authping", web::get().to(ping)) // ping that needs auth
                     .route("/recenttrades/{market}", web::get().to(recent_trades))
                     .route("/ordertrades/{market}/{order_id}", web::get().to(order_trades))
                     .route("/closedorders/{market}", web::get().to(my_orders))
@@ -70,7 +82,7 @@ async fn main() -> std::io::Result<()> {
                     .service(if user_map.manage_channel.is_some() {
                         web::scope("/manage").service(
                             web::scope("/market")
-                                .route("/reload", web::post().to(market::reload))
+                                .route("/reload", web::get().to(market::reload))
                                 .route("/tradepairs", web::post().to(market::add_pair))
                                 .route("/assets", web::post().to(market::add_assets)),
                         )
@@ -92,12 +104,40 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
-    let config = req.app_data::<Config>().cloned().unwrap_or_default();
-
-    match authentication::rest_auth(req, credentials.token()) {
-        Ok(res) => Ok(res),
-        Err(_) => Err(AuthenticationError::from(config).into()),
+    for public_endpoint in PUBLIC_ENDPOINTS.iter() {
+        if req.path().starts_with(public_endpoint) {
+            return Ok(req);
+        }
     }
+
+    let config = req.app_data::<Config>().cloned().unwrap_or_default();
+    let req = match authentication::rest_auth(req, credentials.token()) {
+        Ok(req) => req,
+        Err(_) => {
+            return Err(AuthenticationError::from(config).into());
+        }
+    };
+
+    for admin_endpoint in ADMIN_ENDPOINTS.iter() {
+        if req.path().starts_with(admin_endpoint) {
+            rest_block_non_admins(&req)?;
+        }
+    }
+
+    Ok(req)
+}
+
+fn rest_block_non_admins(req: &ServiceRequest) -> Result<(), Error> {
+    if !req.extensions().get::<UserExtension>().unwrap().is_admin {
+        log::warn!(
+            "Reject REST call; User {} does not have admin rights.",
+            req.extensions().get::<UserExtension>().unwrap().user_id
+        );
+        let config = req.app_data::<Config>().cloned().unwrap_or_default();
+        return Err(AuthenticationError::from(config).into());
+    }
+
+    Ok(())
 }
 
 #[api_v2_operation]

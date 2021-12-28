@@ -63,6 +63,8 @@ pub struct NewAssetReq {
     pub assets: Vec<Asset>,
     #[serde(default)]
     pub not_reload: bool,
+    // REST interface for NewAssetReq internally calls the GRPC interface and must therefore forward the JWT
+    pub jwt: String,
 }
 
 #[derive(Serialize, Deserialize, Default, Apiv2Schema)]
