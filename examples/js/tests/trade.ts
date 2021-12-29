@@ -12,9 +12,9 @@ const askUser = TestUser.USER1;
 const bidUser = TestUser.USER2;
 
 async function infoList() {
-  console.log(await client.assetList());
-  console.log(await client.marketList());
-  console.log(await client.marketSummary(market));
+  console.log(await client.assetList({}));
+  console.log(await client.marketList({}));
+  console.log(await client.marketSummary({}, market));
 }
 
 async function setupAsset() {
@@ -50,14 +50,14 @@ async function orderTest() {
   assertDecimalEqual(balance3.available, "89");
   assertDecimalEqual(balance3.frozen, "11");
 
-  const orderPending = await client.orderDetail(market, order.id);
+  const orderPending = await client.orderDetail({}, market, order.id);
   assert.deepEqual(orderPending, order);
 
-  const summary = await client.marketSummary(market);
+  const summary = await client.marketSummary({}, market);
   assertDecimalEqual(summary.bid_amount, "10");
   assert.equal(summary.bid_count, 1);
 
-  const depth = await client.orderDepth(market, 100, /*not merge*/ "0");
+  const depth = await client.orderDepth({}, market, 100, /*not merge*/ "0");
   assert.deepEqual(depth, {
     asks: [],
     bids: [{ price: "1.10", amount: "10.0000" }],
@@ -81,7 +81,7 @@ async function tradeTest() {
 
   const testReload = false;
   if (testReload) {
-    await client.debugReload(TestUser.ADMIN);
+    await client.debugReload(await this.auth.getAuthTokenMeta(TestUser.ADMIN));
     await testStatusAfterTrade(askOrder.id, bidOrder.id);
   }
 
@@ -90,22 +90,22 @@ async function tradeTest() {
 }
 
 async function testStatusAfterTrade(askOrderId, bidOrderId) {
-  const bidOrderPending = await client.orderDetail(market, bidOrderId);
+  const bidOrderPending = await client.orderDetail({}, market, bidOrderId);
   assertDecimalEqual(bidOrderPending.remain, "6");
 
   // Now, the `askOrder` will be matched and traded
   // So it will not be kept by the match engine
   await assert.rejects(async () => {
-    const askOrderPending = await client.orderDetail(market, askOrderId);
+    const askOrderPending = await client.orderDetail({}, market, askOrderId);
     console.log(askOrderPending);
   }, /invalid order_id/);
 
   // should check trade price is 1.1 rather than 1.0 here.
-  const summary = await client.marketSummary(market);
+  const summary = await client.marketSummary({}, market);
   assertDecimalEqual(summary.bid_amount, "6");
   assert.equal(summary.bid_count, 1);
 
-  const depth = await client.orderDepth(market, 100, /*not merge*/ "0");
+  const depth = await client.orderDepth({}, market, 100, /*not merge*/ "0");
   //assert.deepEqual(depth, { asks: [], bids: [{ price: "1.1", amount: "6" }] });
   //assert.deepEqual(depth, { asks: [], bids: [{ price: "1.1", amount: "6" }] });
   // 4 * 1.1 sell, filled 4
@@ -140,7 +140,7 @@ function checkMessages(messages) {
 }
 
 async function mainTest(withMQ) {
-  await client.debugReset(TestUser.ADMIN);
+  await client.debugReset(await client.auth.getAuthTokenMeta(TestUser.ADMIN));
 
   let kafkaConsumer: KafkaConsumer;
   if (withMQ) {

@@ -125,7 +125,7 @@ async function main() {
   await initClient();
   //await cancelAll();
   if (reset) {
-    await client.debugReset(TestUser.ADMIN);
+    await client.debugReset(await this.auth.getAuthTokenMeta(TestUser.ADMIN));
     await initAssets();
     await transferTest();
     await withdrawTest();

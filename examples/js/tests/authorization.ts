@@ -1,8 +1,9 @@
-import { TestUser } from "../config"; // dotenv
-import { defaultClient as grpcClient } from "../client";
+import { fee, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config"; // dotenv
+import { defaultClient as client, defaultClient as grpcClient } from "../client";
 import { defaultRESTClient as restClient } from "../RESTClient";
 import * as assert from "assert";
 import { Authentication } from "../authentication";
+import { depositAssets } from "../exchange_helper";
 
 const GRPC_PERMISSION_DENIED_CODE = 7;
 const GRPC_PERMISSION_DENIED_TEXT = "Requires admin role.";
@@ -18,47 +19,130 @@ const GRPC_TOKEN_EXPIRED_TEXT = "ExpiredSignature";
 const HTTP_UNAUTHORIZED_CODE = 401;
 const HTTP_UNAUTHORIZED_TEXT = "Unauthorized";
 
+const NON_EXISTANT_USER = 123456789;
+
 async function grpcPermitAdminAccess() {
   // should be executed without throwing any errors.
-  await grpcClient.reloadMarkets(TestUser.ADMIN);
-  await grpcClient.debugReset(TestUser.ADMIN);
-  await grpcClient.debugReload(TestUser.ADMIN);
-  await grpcClient.debugDump(TestUser.ADMIN);
+  await grpcClient.reloadMarkets(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
+  await grpcClient.debugReset(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
+  await grpcClient.debugReload(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
+  await grpcClient.debugDump(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
 }
 
 async function grpcRejectUserAccessingAdminCalls() {
   try {
-    await grpcClient.reloadMarkets(TestUser.USER1);
+    await grpcClient.reloadMarkets(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
     throw Error("Non-admin must not be able to call Admin Remote Procedures!");
   } catch (e) {
     grpcAssertErrorPermissionDenied(e);
   }
 
   try {
-    await grpcClient.debugReset(TestUser.USER1);
+    await grpcClient.debugReset(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
     throw Error("Non-admin must not be able to call Admin Remote Procedures!");
   } catch (e) {
     grpcAssertErrorPermissionDenied(e);
   }
 
   try {
-    await grpcClient.debugReload(TestUser.USER1);
+    await grpcClient.debugReload(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
     throw Error("Non-admin must not be able to call Admin Remote Procedures!");
   } catch (e) {
     grpcAssertErrorPermissionDenied(e);
   }
 
   try {
-    await grpcClient.debugDump(TestUser.USER1);
+    await grpcClient.debugDump(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
     throw Error("Non-admin must not be able to call Admin Remote Procedures!");
   } catch (e) {
     grpcAssertErrorPermissionDenied(e);
+  }
+}
+
+async function grpcRejectAnonymousAccessingAdminCalls() {
+  try {
+    await grpcClient.reloadMarkets({});
+    throw Error("Non-admin must not be able to call Admin Remote Procedures!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.debugReset({});
+    throw Error("Non-admin must not be able to call Admin Remote Procedures!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.debugReload({});
+    throw Error("Non-admin must not be able to call Admin Remote Procedures!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.debugDump({});
+    throw Error("Non-admin must not be able to call Admin Remote Procedures!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
   }
 }
 
 async function grpcRejectUserWithoutToken() {
   try {
     await grpcClient.balanceQueryWithoutJWT();
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.orderCancelAll(NON_EXISTANT_USER, market);
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    // surpress logging
+    let console_log = console.log;
+    console.log = function () {
+      /* do nothing */
+    };
+
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, NON_EXISTANT_USER);
+
+    // reactivate logging
+    console.log = console_log;
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.orderPut(NON_EXISTANT_USER, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, "10", "1.1", fee, fee);
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await batchOrderPut(NON_EXISTANT_USER);
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await grpcClient.orderCancel(NON_EXISTANT_USER, market, 2);
+    throw Error("GRPC call must fail as no authentication token is provided!");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+
+  try {
+    await await grpcClient.orderQuery(NON_EXISTANT_USER, market);
     throw Error("GRPC call must fail as no authentication token is provided!");
   } catch (e) {
     grpcAssertErrorNoTokenProvided(e);
@@ -90,6 +174,74 @@ async function grpcRejectUserWithExpiredToken() {
   } catch (e) {
     grpcAssertErrorExpiredToken(e);
   }
+}
+
+async function grpcPermitAccessToRegularUser() {
+  await grpcClient.balanceQueryWithValidToken();
+  await grpcClient.orderCancelAll(TestUser.USER1, market);
+
+  // surpress logging
+  let console_log = console.log;
+  console.log = function () {
+    /* do nothing */
+  };
+
+  // === SETTING UP MARKET DATA THAT IS LATER BEING USED FOR orderDetail TESTS. === //
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, TestUser.USER1);
+  await grpcClient.orderPut(TestUser.USER1, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, "10", "1.1", fee, fee);
+  await batchOrderPut(TestUser.USER1);
+
+  // reactivate logging
+  console.log = console_log;
+
+  await grpcClient.orderCancel(TestUser.USER1, market, 2);
+  await grpcClient.orderQuery(TestUser.USER1, market);
+}
+
+async function grpcTestPublicEndpoints() {
+  // should work without authentication ...
+  await grpcClient.assetList({});
+  await grpcClient.marketList({});
+  await grpcClient.marketSummary({}, market);
+  await grpcClient.orderDetail({}, market, 1);
+  await grpcClient.orderDepth({}, market, 20, "0.01");
+
+  // ... as well as with authentication
+  await grpcClient.assetList(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
+  await grpcClient.marketList(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1));
+  await grpcClient.marketSummary(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1), market);
+  await grpcClient.orderDetail(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1), market, 1);
+  await grpcClient.orderDepth(await grpcClient.auth.getAuthTokenMeta(TestUser.USER1), market, 20, "0.01");
+
+  // ... including admin users
+  await grpcClient.assetList(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
+  await grpcClient.marketList(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN));
+  await grpcClient.marketSummary(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN), market);
+  await grpcClient.orderDetail(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN), market, 1);
+  await grpcClient.orderDepth(await grpcClient.auth.getAuthTokenMeta(TestUser.ADMIN), market, 20, "0.01");
+}
+
+async function batchOrderPut(user) {
+  await grpcClient.batchOrderPut(user, "ETH_USDT", false, [
+    {
+      market: "ETH_USDT",
+      order_side: ORDER_SIDE_BID,
+      order_type: ORDER_TYPE_LIMIT,
+      amount: "1",
+      price: "1",
+      taker_fee: fee,
+      maker_fee: fee,
+    },
+    {
+      market: "ETH_USDT",
+      order_side: ORDER_SIDE_BID,
+      order_type: ORDER_TYPE_LIMIT,
+      amount: "1",
+      price: "1",
+      taker_fee: fee,
+      maker_fee: fee,
+    },
+  ]);
 }
 
 async function restRejectUserWithoutToken() {
@@ -271,10 +423,13 @@ async function main() {
     console.log("GRPC authentication");
     await grpcPermitAdminAccess();
     await grpcRejectUserAccessingAdminCalls();
+    await grpcRejectAnonymousAccessingAdminCalls();
     await grpcRejectUserWithoutToken();
     await grpcRejectUserWithInvalidToken();
     await grpcRejectUserWithInvalidSignatureToken();
     await grpcRejectUserWithExpiredToken();
+    await grpcPermitAccessToRegularUser();
+    await grpcTestPublicEndpoints();
     console.log("REST authentication");
     await restRejectUserWithoutToken();
     await restRejectUserWithInvalidToken();

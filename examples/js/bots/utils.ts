@@ -8,7 +8,7 @@ import { ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "../co
 // TODO: add a similar function using quoteAmount. "i want to sell some eth to get 5000 usdt"
 // TODO: exclude my orders
 async function estimateMarketOrderSell(client: grpcClient, market, baseAmount: number) {
-  const orderbook = await client.orderDepth(market, 20, "0.01");
+  const orderbook = await client.orderDepth({}, market, 20, "0.01");
   //console.log('depth', orderbook);
   //console.log(client.markets);
   let quoteAcc = 0;
@@ -38,7 +38,7 @@ async function estimateMarketOrderSell(client: grpcClient, market, baseAmount: n
 
 async function estimateMarketOrderBuy(client: grpcClient, market, quoteAmount: number) {
   //await client.connect();
-  const orderbook = await client.orderDepth(market, 20, "0.01");
+  const orderbook = await client.orderDepth({}, market, 20, "0.01");
   //console.log('depth', orderbook);
   //console.log(client.markets);
   let quoteAcc = 0;
