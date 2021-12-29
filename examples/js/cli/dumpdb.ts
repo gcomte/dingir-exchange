@@ -4,7 +4,7 @@ import { TestUser } from "../config";
 async function main() {
   //    Dotenv.config()
   try {
-    await client.debugDump(TestUser.ADMIN);
+    await client.debugDump(await this.auth.getAuthTokenMeta(TestUser.ADMIN));
   } catch (error) {
     console.error("Caught error:", error);
   }

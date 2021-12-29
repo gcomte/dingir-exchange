@@ -10,6 +10,18 @@ class Authentication {
     return { Authorization: await this.getAuthTokenMetaValue(user) };
   }
 
+  getExpiredAuthTokenMeta() {
+    return { Authorization: process.env.JWT_EXPIRED };
+  }
+
+  getInvalidSignatureAuthTokenMeta() {
+    return { Authorization: process.env.JWT_INVALID_SIGNATURE };
+  }
+
+  getInvalidInvalidAuthTokenMeta() {
+    return { Authorization: "LOREM_IPSUM" };
+  }
+
   async getAuthTokenMetaValue(user) {
     switch (user) {
       case TestUser.ADMIN:
