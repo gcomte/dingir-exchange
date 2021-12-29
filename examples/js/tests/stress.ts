@@ -6,7 +6,7 @@ import { sleep, decimalAdd, assertDecimalEqual } from "../util";
 import { depositAssets, printBalance, putRandOrder } from "../exchange_helper";
 
 async function stressTest({ parallel, interval, repeat }) {
-  const tradeCountBefore = (await client.marketSummary(market)).trade_count;
+  const tradeCountBefore = (await client.marketSummary({}, market)).trade_count;
   console.log("cancel", tradeCountBefore, "trades");
   console.log(await client.orderCancelAll(TestUser.USER1, market));
   await depositAssets({ USDT: "10000000", ETH: "10000" }, TestUser.USER1);
@@ -39,7 +39,7 @@ async function stressTest({ parallel, interval, repeat }) {
   const ETHAfter = await client.balanceQueryByAsset(TestUser.USER1, "ETH");
   assertDecimalEqual(USDTAfter, USDTBefore);
   assertDecimalEqual(ETHAfter, ETHBefore);
-  const tradeCountAfter = (await client.marketSummary(market)).trade_count;
+  const tradeCountAfter = (await client.marketSummary({}, market)).trade_count;
   console.log("avg orders/s:", (parallel * repeat) / totalTime);
   console.log("avg trades/s:", (tradeCountAfter - tradeCountBefore) / totalTime);
   console.log("stressTest done");

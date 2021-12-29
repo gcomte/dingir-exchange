@@ -140,12 +140,16 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn balance_query(&self, request: Request<BalanceQueryRequest>) -> Result<Response<BalanceQueryResponse>, Status> {
+        grpc_block_anonymous(&request)?;
+
         let stub = self.stub.read().await;
         let user_id = get_user_id_from_request(&request);
         Ok(Response::new(stub.balance_query(request.into_inner(), user_id)?))
     }
 
     async fn order_query(&self, request: tonic::Request<OrderQueryRequest>) -> Result<tonic::Response<OrderQueryResponse>, tonic::Status> {
+        grpc_block_anonymous(&request)?;
+
         let stub = self.stub.read().await;
         let user_id = get_user_id_from_request(&request);
         Ok(Response::new(stub.order_query(request.into_inner(), user_id)?))
@@ -175,6 +179,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
 
     /*---------------------------- following are "written ops" ---------------------------------*/
     async fn balance_update(&self, request: Request<BalanceUpdateRequest>) -> Result<Response<BalanceUpdateResponse>, Status> {
+        grpc_block_anonymous(&request)?;
+
         let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
             Box::pin(async move { ctrl.update_balance(true, request.into_inner(), user_id) })
@@ -185,6 +191,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn order_put(&self, request: Request<OrderPutRequest>) -> Result<Response<OrderInfo>, Status> {
+        grpc_block_anonymous(&request)?;
+
         let user_id = get_user_id_from_request(&request);
         let req = request.into_inner();
 
@@ -209,6 +217,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn batch_order_put(&self, request: Request<BatchOrderPutRequest>) -> Result<Response<BatchOrderPutResponse>, Status> {
+        grpc_block_anonymous(&request)?;
+
         let user_id = get_user_id_from_request(&request);
         let req = request.into_inner();
         if req.orders.len() > MAX_BATCH_ORDER_NUM {
@@ -226,6 +236,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
     }
 
     async fn order_cancel(&self, request: tonic::Request<OrderCancelRequest>) -> Result<tonic::Response<OrderInfo>, tonic::Status> {
+        grpc_block_anonymous(&request)?;
+
         let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
             Box::pin(async move { ctrl.order_cancel(true, request.into_inner(), user_id) })
@@ -238,6 +250,8 @@ impl matchengine_server::Matchengine for GrpcHandler {
         &self,
         request: tonic::Request<OrderCancelAllRequest>,
     ) -> Result<tonic::Response<OrderCancelAllResponse>, tonic::Status> {
+        grpc_block_anonymous(&request)?;
+
         let user_id = get_user_id_from_request(&request);
         let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
             Box::pin(async move { ctrl.order_cancel_all(true, request.into_inner(), user_id) })
@@ -317,12 +331,30 @@ fn get_user_id_from_request<T>(request: &Request<T>) -> Uuid {
 }
 
 fn grpc_block_non_admins<T>(request: &Request<T>) -> Result<(), Status> {
-    let user_extension: &UserExtension = request.extensions().get::<UserExtension>().unwrap();
+    let user_extension: Option<&UserExtension> = request.extensions().get::<UserExtension>();
 
-    if !user_extension.is_admin {
-        log::warn!("Reject GRPC call; User {} does not have admin rights.", user_extension.user_id);
-        return Err(Status::permission_denied("Requires admin role."));
+    match user_extension {
+        Some(user_extension) => {
+            if !user_extension.is_admin {
+                log::warn!("Reject GRPC call; User {} does not have admin rights.", user_extension.user_id);
+                return Err(Status::permission_denied("Requires admin role."));
+            }
+        }
+        None => return Err(credentials_missing()),
     }
 
     Ok(())
+}
+
+fn grpc_block_anonymous<T>(request: &Request<T>) -> Result<(), Status> {
+    if request.extensions().get::<UserExtension>().is_none() {
+        return Err(credentials_missing());
+    }
+
+    Ok(())
+}
+
+fn credentials_missing() -> Status {
+    log::warn!("Reject GRPC call; Endpoint requires authentification.");
+    Status::unauthenticated("Token not found")
 }

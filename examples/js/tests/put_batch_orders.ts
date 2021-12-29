@@ -102,7 +102,7 @@ async function openOrderNum(userId) {
 async function main() {
   try {
     await initClient();
-    await client.debugReset(TestUser.ADMIN);
+    await client.debugReset(await client.auth.getAuthTokenMeta(TestUser.ADMIN));
     await initAssets();
     await mainTest();
   } catch (error) {

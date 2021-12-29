@@ -28,8 +28,8 @@ class Client {
   }
 
   async connect() {
-    this.markets = await this.marketList();
-    for (const elem of await this.assetList()) {
+    this.markets = await this.marketList({});
+    for (const elem of await this.assetList({})) {
       this.assets.set(elem.symbol, elem);
     }
     console.log("markets", this.markets);
@@ -40,24 +40,28 @@ class Client {
     return await this.balanceQueryBase(await this.auth.getAuthTokenMeta(user));
   }
 
-  // This call should as the authentication fails
+  // This call should throw an error as the authentication fails
   async balanceQueryWithoutJWT(): Promise<Map<string, any>> {
     return await this.balanceQueryBase({});
   }
 
-  // This call should as the authentication fails
+  // This call should throw an error as the authentication fails
   async balanceQueryWithInvalidToken(): Promise<Map<string, any>> {
-    return await this.balanceQueryBase({ Authorization: "LOREM_IPSUM" });
+    return await this.balanceQueryBase(this.auth.getInvalidInvalidAuthTokenMeta());
   }
 
-  // This call should as the authentication fails
+  // This call should throw an error as the authentication fails
   async balanceQueryWithInvalidSignatureToken(): Promise<Map<string, any>> {
-    return await this.balanceQueryBase({ Authorization: process.env.JWT_INVALID_SIGNATURE });
+    return await this.balanceQueryBase(this.auth.getInvalidSignatureAuthTokenMeta());
   }
 
-  // This call should as the authentication fails
+  // This call should throw an error as the authentication fails
   async balanceQueryWithExpiredToken(): Promise<Map<string, any>> {
-    return await this.balanceQueryBase({ Authorization: process.env.JWT_EXPIRED });
+    return await this.balanceQueryBase(this.auth.getExpiredAuthTokenMeta());
+  }
+
+  async balanceQueryWithValidToken(): Promise<Map<string, any>> {
+    return await this.balanceQueryBase(await this.auth.getAuthTokenMeta(TestUser.ADMIN));
   }
 
   // This call should as the authentication fails
@@ -151,12 +155,12 @@ class Client {
     );
   }
 
-  async assetList() {
-    return (await this.client.AssetList({}, await this.auth.getAuthTokenMeta(TestUser.USER1))).asset_lists;
+  async assetList(auth_header) {
+    return (await this.client.AssetList({}, auth_header)).asset_lists;
   }
 
-  async marketList(): Promise<Map<string, any>> {
-    const markets = (await this.client.MarketList({}, await this.auth.getAuthTokenMeta(TestUser.USER1))).markets;
+  async marketList(auth_header): Promise<Map<string, any>> {
+    const markets = (await this.client.MarketList({}, auth_header)).markets;
     let map = new Map();
     for (const m of markets) {
       map.set(m.name, m);
@@ -164,11 +168,11 @@ class Client {
     return map;
   }
 
-  async orderDetail(market, order_id) {
-    return await this.client.OrderDetail({ market, order_id }, await this.auth.getAuthTokenMeta(TestUser.USER1));
+  async orderDetail(auth_header, market, order_id) {
+    return await this.client.OrderDetail({ market, order_id }, auth_header);
   }
 
-  async marketSummary(req) {
+  async marketSummary(auth_header, req) {
     let markets;
     if (req == null) {
       markets = [];
@@ -177,15 +181,15 @@ class Client {
     } else if (Array.isArray(req)) {
       markets = req;
     }
-    let resp = (await this.client.MarketSummary({ markets }, await this.auth.getAuthTokenMeta(TestUser.USER1))).market_summaries;
+    let resp = (await this.client.MarketSummary({ markets }, auth_header)).market_summaries;
     if (typeof req === "string") {
       return resp.find(item => item.name === req);
     }
     return resp;
   }
 
-  async reloadMarkets(user_id, from_scratch: boolean = false) {
-    return await this.client.ReloadMarkets({ from_scratch }, await this.auth.getAuthTokenMeta(user_id));
+  async reloadMarkets(auth_header, from_scratch: boolean = false) {
+    return await this.client.ReloadMarkets({ from_scratch }, auth_header);
   }
 
   async orderCancel(user_id, market, order_id) {
@@ -196,8 +200,8 @@ class Client {
     return await this.client.OrderCancelAll({ user_id, market }, await this.auth.getAuthTokenMeta(user_id));
   }
 
-  async orderDepth(market, limit, interval) {
-    return await this.client.OrderBookDepth({ market, limit, interval }, await this.auth.getAuthTokenMeta(TestUser.USER1));
+  async orderDepth(auth_header, market, limit, interval) {
+    return await this.client.OrderBookDepth({ market, limit, interval }, auth_header);
   }
 
   createTransferTx(from, to, asset, delta, memo) {
@@ -250,16 +254,16 @@ class Client {
     return await this.client.BalanceUpdate(tx, await this.auth.getAuthTokenMeta(user));
   }
 
-  async debugDump(user) {
-    return await this.client.DebugDump({}, await this.auth.getAuthTokenMeta(user));
+  async debugDump(auth_header) {
+    return await this.client.DebugDump({}, auth_header);
   }
 
-  async debugReset(user) {
-    return await this.client.DebugReset({}, await this.auth.getAuthTokenMeta(user));
+  async debugReset(auth_header) {
+    return await this.client.DebugReset({}, auth_header);
   }
 
-  async debugReload(user) {
-    return await this.client.DebugReload({}, await this.auth.getAuthTokenMeta(user));
+  async debugReload(auth_header) {
+    return await this.client.DebugReload({}, auth_header);
   }
 }
 

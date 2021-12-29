@@ -39,24 +39,21 @@ fn validate_jwt(jwt: &str) -> Result<TokenData<Claims>, Box<dyn Error + Send + S
 }
 
 pub fn grpc_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
-    let jwt = match req.metadata().get("authorization") {
-        Some(token) => {
-            let token = token.to_str();
-            match token {
-                Ok(jwt) => jwt.replace("Bearer ", ""),
-                Err(err) => return Err(Status::unauthenticated(err.to_string())),
-            }
-        }
-        None => return Err(Status::unauthenticated("Token not found")),
-    };
+    if let Some(token) = req.metadata().get("authorization") {
+        let token = token.to_str();
+        let jwt = match token {
+            Ok(jwt) => jwt.replace("Bearer ", ""),
+            Err(err) => return Err(Status::unauthenticated(err.to_string())),
+        };
 
-    let token = match validate_jwt(&jwt) {
-        Ok(jwt) => jwt,
-        Err(err) => return Err(Status::unauthenticated(err.to_string())),
-    };
+        let claims = match validate_jwt(&jwt) {
+            Ok(token_data) => token_data,
+            Err(err) => return Err(Status::unauthenticated(err.to_string())),
+        };
 
-    // Add extensions to request
-    req.extensions_mut().insert(get_user_extension(token));
+        // Add extensions to request
+        req.extensions_mut().insert(get_user_extension(claims));
+    }
 
     Ok(req)
 }
