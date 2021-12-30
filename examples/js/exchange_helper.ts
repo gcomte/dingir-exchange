@@ -10,7 +10,7 @@ function depositId() {
   return Date.now();
 }
 
-export async function printBalance(printList = ["USDT", "ETH"]) {
+export async function printBalance(printList = ["BTC", "DIF"]) {
   const balances = await client.balanceQuery(TestUser.USER1);
   console.log("\nasset\tsum\tavaiable\tfrozen");
   for (const asset of printList) {

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { strict as assert } from "assert";
 import "../config";
+import { market } from "../config";
 
 const isCI = !!process.env.GITHUB_ACTIONS;
 
@@ -26,9 +27,9 @@ const new_market1 = {
 
 const new_market2 = {
   market: {
-    name: "BTC_USDT",
-    base: { name: "BTC", prec: 2 },
-    quote: { name: "USDT", prec: 4 },
+    name: market,
+    base: { name: "XYZ", prec: 2 },
+    quote: { name: "BTC", prec: 4 },
     fee_prec: 2,
     min_amount: 0.01,
   },

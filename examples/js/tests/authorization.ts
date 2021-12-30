@@ -107,7 +107,7 @@ async function grpcRejectUserWithoutToken() {
   }
 
   try {
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, NON_EXISTANT_USER);
+    await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, NON_EXISTANT_USER);
     throw Error("GRPC call must fail as no authentication token is provided!");
   } catch (e) {
     grpcAssertErrorNoTokenProvided(e);
@@ -174,7 +174,7 @@ async function grpcPermitAccessToRegularUser() {
   await grpcClient.orderCancelAll(TestUser.USER1, market);
 
   // === SETTING UP MARKET DATA THAT IS LATER BEING USED FOR orderDetail TESTS. === //
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
+  await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
   await grpcClient.orderPut(TestUser.USER1, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, "10", "1.1", fee, fee);
   await batchOrderPut(TestUser.USER1);
 
@@ -272,9 +272,9 @@ async function grpcTestPublicEndpoints() {
 }
 
 async function batchOrderPut(user) {
-  await grpcClient.batchOrderPut(user, "ETH_USDT", false, [
+  await grpcClient.batchOrderPut(user, market, false, [
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -283,7 +283,7 @@ async function batchOrderPut(user) {
       maker_fee: fee,
     },
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -296,7 +296,7 @@ async function batchOrderPut(user) {
 
 async function restRejectUserWithoutToken() {
   try {
-    await restClient.closedOrders("", "ETH_USDT");
+    await restClient.closedOrders("", market);
     throw Error("REST call must fail as no authentication token is provided!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
@@ -305,7 +305,7 @@ async function restRejectUserWithoutToken() {
 
 async function restRejectUserWithInvalidToken() {
   try {
-    await restClient.closedOrders("LoremIpsum", "ETH_USDT");
+    await restClient.closedOrders("LoremIpsum", market);
     throw Error("REST call must fail as authentication token is invalid!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
@@ -314,7 +314,7 @@ async function restRejectUserWithInvalidToken() {
 
 async function restRejectUserWithInvalidToken2() {
   try {
-    await restClient.closedOrders("Bearer LoremIpsum", "ETH_USDT");
+    await restClient.closedOrders("Bearer LoremIpsum", market);
     throw Error("REST call must fail as authentication token is invalid!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
@@ -323,7 +323,7 @@ async function restRejectUserWithInvalidToken2() {
 
 async function restRejectUserWithInvalidSignatureToken() {
   try {
-    await restClient.closedOrders(process.env.JWT_INVALID_SIGNATURE, "ETH_USDT");
+    await restClient.closedOrders(process.env.JWT_INVALID_SIGNATURE, market);
     throw Error("REST call must fail as the authentication token's signature doesn't check out!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
@@ -332,7 +332,7 @@ async function restRejectUserWithInvalidSignatureToken() {
 
 async function restRejectUserWithExpiredToken() {
   try {
-    await restClient.closedOrders(process.env.JWT_EXPIRED, "ETH_USDT");
+    await restClient.closedOrders(process.env.JWT_EXPIRED, market);
     throw Error("REST call must fail as the authentication token is expired!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
@@ -340,29 +340,29 @@ async function restRejectUserWithExpiredToken() {
 }
 
 async function restPermitAccessWithValidToken(auth: Authentication) {
-  await restClient.closedOrders(await auth.getAuthTokenMetaValue(TestUser.USER1), "ETH_USDT");
+  await restClient.closedOrders(await auth.getAuthTokenMetaValue(TestUser.USER1), market);
 }
 
 async function restTestPublicEndpoints(auth: Authentication) {
   // should work without authentication ...
   await restClient.ping("Bearer LoremIpsum");
-  await restClient.recentTrades("Bearer LoremIpsum", "ETH_USDT");
-  await restClient.orderTrades("Bearer LoremIpsum", "ETH_USDT", 2);
-  await restClient.ticker("Bearer LoremIpsum", "24h", "ETH_USDT");
+  await restClient.recentTrades("Bearer LoremIpsum", market);
+  await restClient.orderTrades("Bearer LoremIpsum", market, 2);
+  await restClient.ticker("Bearer LoremIpsum", "24h", market);
   await restClient.tradingView("Bearer LoremIpsum");
 
   // ... as well as with authentication
   await restClient.ping(await auth.getAuthTokenMetaValue(TestUser.USER1));
-  await restClient.recentTrades(await auth.getAuthTokenMetaValue(TestUser.USER1), "ETH_USDT");
-  await restClient.orderTrades(await auth.getAuthTokenMetaValue(TestUser.USER1), "ETH_USDT", 2);
-  await restClient.ticker(await auth.getAuthTokenMetaValue(TestUser.USER1), "24h", "ETH_USDT");
+  await restClient.recentTrades(await auth.getAuthTokenMetaValue(TestUser.USER1), market);
+  await restClient.orderTrades(await auth.getAuthTokenMetaValue(TestUser.USER1), market, 2);
+  await restClient.ticker(await auth.getAuthTokenMetaValue(TestUser.USER1), "24h", market);
   await restClient.tradingView(await auth.getAuthTokenMetaValue(TestUser.USER1));
 }
 
 async function restTestRegularEndpoints(auth: Authentication) {
   // should work with authentication ...
   await restClient.authping(await auth.getAuthTokenMetaValue(TestUser.USER1));
-  await restClient.closedOrders(await auth.getAuthTokenMetaValue(TestUser.USER1), "ETH_USDT");
+  await restClient.closedOrders(await auth.getAuthTokenMetaValue(TestUser.USER1), market);
 
   // ... but not without
   try {
@@ -372,7 +372,7 @@ async function restTestRegularEndpoints(auth: Authentication) {
     restAssertAuthenticationNotSatisfactory(e);
   }
   try {
-    await restClient.closedOrders("Bearer LoremIpsum", "ETH_USDT");
+    await restClient.closedOrders("Bearer LoremIpsum", market);
     throw Error("REST call must fail as the authentication token is invalid!");
   } catch (e) {
     restAssertAuthenticationNotSatisfactory(e);
