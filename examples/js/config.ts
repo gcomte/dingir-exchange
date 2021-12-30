@@ -16,8 +16,8 @@ export enum TestUser {
   USER2,
 }
 
-export const base = "ETH";
-export const quote = "USDT";
+export const base = "DIF";
+export const quote = "BTC";
 export const market = `${base}_${quote}`;
 export const fee = "0";
 

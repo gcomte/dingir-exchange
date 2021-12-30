@@ -1,7 +1,7 @@
 import axios from "axios";
 import { defaultClient as client } from "../client";
 import { depositAssets } from "../exchange_helper";
-import { fee, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config";
+import { fee, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config";
 import { strict as assert } from "assert";
 import { Authentication } from "../authentication";
 
@@ -12,7 +12,7 @@ async function initClient() {
 }
 
 async function initAssets() {
-  await depositAssets({ USDT: "500000.0" }, TestUser.USER1);
+  await depositAssets({ BTC: "500000.0" }, TestUser.USER1);
   for (const [name, info] of client.markets) {
     const base = info.base;
     const depositReq = {};
@@ -32,9 +32,9 @@ async function putOrdersTest() {
 
   const oldOrderNum1 = await openOrderNum(TestUser.USER1);
 
-  const res = await client.batchOrderPut(TestUser.USER1, "ETH_USDT", false, [
+  const res = await client.batchOrderPut(TestUser.USER1, market, false, [
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -43,7 +43,7 @@ async function putOrdersTest() {
       maker_fee: fee,
     },
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -66,9 +66,9 @@ async function putAndResetOrdersTest() {
   const oldOrderNum1 = await openOrderNum(TestUser.USER1);
   assert(oldOrderNum1 > 0);
 
-  const res = await client.batchOrderPut(TestUser.USER1, "ETH_USDT", true, [
+  const res = await client.batchOrderPut(TestUser.USER1, market, true, [
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -77,7 +77,7 @@ async function putAndResetOrdersTest() {
       maker_fee: fee,
     },
     {
-      market: "ETH_USDT",
+      market: market,
       order_side: ORDER_SIDE_BID,
       order_type: ORDER_TYPE_LIMIT,
       amount: "1",
@@ -96,7 +96,7 @@ async function putAndResetOrdersTest() {
 async function openOrderNum(userId) {
   const auth = new Authentication();
   axios.defaults.headers.common["Authorization"] = await auth.getAuthTokenMetaValue(userId);
-  return (await axios.get(`http://${apiServer}/api/exchange/action/orders/ETH_USDT`)).data.orders.length;
+  return (await axios.get(`http://${apiServer}/api/exchange/action/orders/${market}`)).data.orders.length;
 }
 
 async function main() {

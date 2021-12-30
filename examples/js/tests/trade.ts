@@ -20,33 +20,33 @@ async function infoList() {
 async function setupAsset() {
   // check balance is zero
   const balance1 = await client.balanceQuery(askUser);
-  let usdtBalance = balance1.get("USDT");
-  let ethBalance = balance1.get("ETH");
-  assertDecimalEqual(usdtBalance.available, "0");
-  assertDecimalEqual(usdtBalance.frozen, "0");
-  assertDecimalEqual(ethBalance.available, "0");
-  assertDecimalEqual(ethBalance.frozen, "0");
+  let btcBalance = balance1.get("BTC");
+  let difBalance = balance1.get("DIF");
+  assertDecimalEqual(btcBalance.available, "0");
+  assertDecimalEqual(btcBalance.frozen, "0");
+  assertDecimalEqual(difBalance.available, "0");
+  assertDecimalEqual(difBalance.frozen, "0");
 
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, askUser);
+  await depositAssets({ BTC: "100.0", DIF: "50.0" }, askUser);
 
   // check deposit success
   const balance2 = await client.balanceQuery(askUser);
-  usdtBalance = balance2.get("USDT");
-  ethBalance = balance2.get("ETH");
-  console.log(usdtBalance);
-  assertDecimalEqual(usdtBalance.available, "100");
-  assertDecimalEqual(usdtBalance.frozen, "0");
-  assertDecimalEqual(ethBalance.available, "50");
-  assertDecimalEqual(ethBalance.frozen, "0");
+  btcBalance = balance2.get("BTC");
+  difBalance = balance2.get("DIF");
+  console.log(btcBalance);
+  assertDecimalEqual(btcBalance.available, "100");
+  assertDecimalEqual(btcBalance.frozen, "0");
+  assertDecimalEqual(difBalance.available, "50");
+  assertDecimalEqual(difBalance.frozen, "0");
 
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, bidUser);
+  await depositAssets({ BTC: "100.0", DIF: "50.0" }, bidUser);
 }
 
 // Test order put and cancel
 async function orderTest() {
   const order = await client.orderPut(askUser, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, /*amount*/ "10", /*price*/ "1.1", fee, fee);
   console.log(order);
-  const balance3 = await client.balanceQueryByAsset(askUser, "USDT");
+  const balance3 = await client.balanceQueryByAsset(askUser, "BTC");
   assertDecimalEqual(balance3.available, "89");
   assertDecimalEqual(balance3.frozen, "11");
 
@@ -64,7 +64,7 @@ async function orderTest() {
   });
 
   await client.orderCancel(askUser, market, 1);
-  const balance4 = await client.balanceQueryByAsset(askUser, "USDT");
+  const balance4 = await client.balanceQueryByAsset(askUser, "BTC");
   assertDecimalEqual(balance4.available, "100");
   assertDecimalEqual(balance4.frozen, "0");
 
@@ -110,20 +110,20 @@ async function testStatusAfterTrade(askOrderId, bidOrderId) {
   //assert.deepEqual(depth, { asks: [], bids: [{ price: "1.1", amount: "6" }] });
   // 4 * 1.1 sell, filled 4
   const balance1 = await client.balanceQuery(askUser);
-  let usdtBalance = balance1.get("USDT");
-  let ethBalance = balance1.get("ETH");
-  assertDecimalEqual(usdtBalance.available, "104.4");
-  assertDecimalEqual(usdtBalance.frozen, "0");
-  assertDecimalEqual(ethBalance.available, "46");
-  assertDecimalEqual(ethBalance.frozen, "0");
+  let btcBalance = balance1.get("BTC");
+  let difBalance = balance1.get("DIF");
+  assertDecimalEqual(btcBalance.available, "104.4");
+  assertDecimalEqual(btcBalance.frozen, "0");
+  assertDecimalEqual(difBalance.available, "46");
+  assertDecimalEqual(difBalance.frozen, "0");
   // 10 * 1.1 buy, filled 4
   const balance2 = await client.balanceQuery(bidUser);
-  usdtBalance = balance2.get("USDT");
-  ethBalance = balance2.get("ETH");
-  assertDecimalEqual(usdtBalance.available, "89");
-  assertDecimalEqual(usdtBalance.frozen, "6.6");
-  assertDecimalEqual(ethBalance.available, "54");
-  assertDecimalEqual(ethBalance.frozen, "0");
+  btcBalance = balance2.get("BTC");
+  difBalance = balance2.get("DIF");
+  assertDecimalEqual(btcBalance.available, "89");
+  assertDecimalEqual(btcBalance.frozen, "6.6");
+  assertDecimalEqual(difBalance.available, "54");
+  assertDecimalEqual(difBalance.frozen, "0");
 }
 
 async function simpleTest() {
