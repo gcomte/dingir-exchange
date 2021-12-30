@@ -1,8 +1,13 @@
 name: Build binaries, build container images, push to registry, deploy to gke
-on:   
-  push:
-    branches:
-      - master
+
+on:
+  workflow_run:
+    workflows:
+      - Integration tests
+    branches: [master]
+    types:
+      - completed
+
 env:
   IMAGE: dingir
   GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
@@ -13,7 +18,7 @@ jobs:
       - name: install system depenencies
         run: |-
           sudo add-apt-repository ppa:rmescandon/yq
-          sudo apt install yq  libpq-dev cmake gcc g++ postgresql-client-12
+          sudo apt install yq libpq-dev cmake gcc g++ postgresql-client-12
       - uses: actions/checkout@v2
         with:
           submodules: 'true'

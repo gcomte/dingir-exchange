@@ -1,16 +1,11 @@
 name: Integration tests
 
 on:
-  push:
-    branches:
-      - master
-      - prod
-      - release/*
-  pull_request:
-    branches:
-      - master
-      - prod
-      - release/*
+  workflow_run:
+    workflows:
+      - Unit tests
+    types:
+      - completed
 
 env:
   SCCACHE_REGION: ap-northeast-1
