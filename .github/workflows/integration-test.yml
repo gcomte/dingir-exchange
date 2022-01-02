@@ -93,6 +93,9 @@ jobs:
       - name: Pull git submodule
         run: git submodule update --init --recursive
 
+      - name: Use CI branch for orchestra
+        run: cd orchestra ; git checkout ci ; cd ..
+
       - name: Up docker-compose
         run: docker-compose --file "./orchestra/docker/docker-compose.yaml" up --detach
 
