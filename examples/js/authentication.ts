@@ -1,14 +1,8 @@
 import fetch from "node-fetch";
-import { TestUser } from "./config";
+import { credentials, TestUser } from "./config";
 
 class Authentication {
-  adminToken: undefined;
-  user1Token: undefined;
-  user2Token: undefined;
-
-  async getAuthTokenMeta(user) {
-    return { Authorization: await this.getAuthTokenMetaValue(user) };
-  }
+  tokens: Map<TestUser, any> = new Map();
 
   getExpiredAuthTokenMeta() {
     return { Authorization: process.env.JWT_EXPIRED };
@@ -22,42 +16,18 @@ class Authentication {
     return { Authorization: "LOREM_IPSUM" };
   }
 
-  async getAuthTokenMetaValue(user) {
-    switch (user) {
-      case TestUser.ADMIN:
-        return "Bearer " + (await this.getAdminAuthToken());
-      case TestUser.USER1:
-        return "Bearer " + (await this.getUser1AuthToken());
-      case TestUser.USER2:
-        return "Bearer " + (await this.getUser2AuthToken());
-    }
+  async getAuthTokenMeta(user: TestUser) {
+    return { Authorization: await this.getAuthTokenMetaValue(user) };
   }
 
-  async getAdminAuthToken() {
-    // cache the token
-    if (this.adminToken == undefined) {
-      this.adminToken = await this.getUserAuthToken(process.env.KC_ADMIN_NAME, process.env.KC_ADMIN_PASSWORD);
+  async getAuthTokenMetaValue(user: TestUser) {
+    const c = credentials[user];
+
+    if (!this.tokens.has(user)) {
+      const token = await this.getUserAuthToken(c.username, c.password);
+      this.tokens.set(user, token);
     }
-
-    return this.adminToken;
-  }
-
-  async getUser1AuthToken() {
-    // cache the token
-    if (this.user1Token == undefined) {
-      this.user1Token = await this.getUserAuthToken(process.env.KC_USER1_NAME, process.env.KC_USER1_PASSWORD);
-    }
-
-    return this.user1Token;
-  }
-
-  async getUser2AuthToken() {
-    // cache the token
-    if (this.user2Token == undefined) {
-      this.user2Token = await this.getUserAuthToken(process.env.KC_USER2_NAME, process.env.KC_USER2_PASSWORD);
-    }
-
-    return this.user2Token;
+    return this.tokens.get(user);
   }
 
   async getUserAuthToken(user, password) {

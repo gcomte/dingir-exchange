@@ -133,22 +133,6 @@ jobs:
         run: |
           cd ./examples/js/
           npx ts-node tests/trade.ts
-          touch .env
-          echo KC_URL=${{ secrets.KC_URL }} >> .env
-          echo KC_REALM=${{ secrets.KC_REALM }} >> .env
-          echo KC_CLIENT_ID=${{ secrets.KC_CLIENT_ID }} >> .env
-          echo KC_CLIENT_SECRET=${{ secrets.KC_CLIENT_SECRET }} >> .env
-          echo KC_ADMIN_NAME=${{ secrets.KC_ADMIN_NAME }} >> .env
-          echo KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }} >> .env
-          echo KC_USER1_NAME=${{ secrets.KC_USER1_NAME }} >> .env
-          echo KC_USER1_PASSWORD=${{ secrets.KC_USER1_PASSWORD }} >> .env
-          echo KC_USER2_NAME=${{ secrets.KC_USER2_NAME }} >> .env
-          echo KC_USER2_PASSWORD=${{ secrets.KC_USER2_PASSWORD }} >> .env
-          echo JWT_INVALID_SIGNATURE=${{ secrets.JWT_INVALID_SIGNATURE }} >> .env
-          echo JWT_EXPIRED=${{ secrets.JWT_EXPIRED }} >> .env
-          cat .env
-          npx ts-node authorization.ts
-          npx ts-node trade.ts
           sleep 5
           npx ts-node tests/print_orders.ts
           npx ts-node tests/put_batch_orders.ts

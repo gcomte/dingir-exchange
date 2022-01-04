@@ -93,7 +93,7 @@ async function putAndResetOrdersTest() {
   console.log("putAndResetOrdersTest End");
 }
 
-async function openOrderNum(userId) {
+async function openOrderNum(userId: TestUser) {
   const auth = new Authentication();
   axios.defaults.headers.common["Authorization"] = await auth.getAuthTokenMetaValue(userId);
   return (await axios.get(`http://${apiServer}/api/exchange/action/orders/${market}`)).data.orders.length;
