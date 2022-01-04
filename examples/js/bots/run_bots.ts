@@ -10,9 +10,9 @@ import { depositAssets, getPriceOfCoin } from "../exchange_helper";
 //const VERBOSE = false;
 console.log({ VERBOSE });
 
-const market = "BTC_FEE";
-const baseCoin = "BTC";
-const quoteCoin = "FEE";
+const market = "FEE_BTC";
+const baseCoin = "FEE";
+const quoteCoin = "BTC";
 
 async function main(user_id: TestUser) {
   await defaultClient.connect();
