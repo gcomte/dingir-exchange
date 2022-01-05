@@ -1,0 +1,24 @@
+name: Build build bot container images, push to registry, deploy to gke
+on:   
+  workflow_dispatch
+env:
+  GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - name: Build containers
+        run: |-
+          cp ./orchestra/proto/exchange/matchengine.proto ./examples/js/matchengine.proto
+          docker build examples/js --tag "gcr.io/$GCLOUD_PROJECT/bitraw-bots:$GITHUB_SHA"
+      - name: Push container
+        run: |-
+          docker push "gcr.io/$GCLOUD_PROJECT/bitraw-bots:$GITHUB_SHA"
+      - name: Deploy
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec: helm upgrade bitraw-bots bitraw/bitraw-bots --set=image.name=gcr.io/$GCLOUD_PROJECT/bitraw-bots:$GITHUB_SHA
+          

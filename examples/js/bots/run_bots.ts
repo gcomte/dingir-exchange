@@ -1,43 +1,34 @@
 import { MMByPriceBot } from "./mm_external_price_bot";
 import * as regression from "regression";
-import { Account } from "fluidex.js";
-import { defaultRESTClient, RESTClient } from "../RESTClient";
-import { defaultClient as defaultGrpcClient, Client as grpcClient, defaultClient } from "../client";
+import { defaultClient } from "../client";
 import { sleep } from "../util";
-import { ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE, TestUser } from "../config";
-import {
-  estimateMarketOrderSell,
-  estimateMarketOrderBuy,
-  execMarketOrderAsLimit_Sell,
-  execMarketOrderAsLimit_Buy,
-  rebalance,
-  printBalance,
-  totalBalance,
-} from "./utils";
+import { VERBOSE, TestUser } from "../config";
+import { rebalance, printBalance, totalBalance } from "./utils";
 import { executeOrders } from "./executor";
 import { depositAssets, getPriceOfCoin } from "../exchange_helper";
 
 //const VERBOSE = false;
 console.log({ VERBOSE });
 
-const market = "ETH_USDT";
-const baseCoin = "ETH";
-const quoteCoin = "USDT";
+const market = "FEE_BTC";
+const baseCoin = "FEE";
+const quoteCoin = "BTC";
 
-async function main() {
+async function main(user_id: TestUser) {
   await defaultClient.connect();
 
-  await rebalance(TestUser.USER1, baseCoin, quoteCoin, market);
+  await depositAssets({ BTC: "10", FEE: "10" }, user_id);
+  await rebalance(user_id, baseCoin, quoteCoin, market);
 
   let bot = new MMByPriceBot();
-  bot.init(TestUser.USER1, "bot1", defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
+  bot.init(user_id, "bot" + user_id, defaultClient, baseCoin, quoteCoin, market, null, VERBOSE);
   bot.priceFn = async function (coin: string) {
     return await getPriceOfCoin(coin, 5, "coinstats");
   };
   let balanceStats = [];
   let count = 0;
   const startTime = Date.now() / 1000;
-  const { totalValue: totalValueWhenStart } = await totalBalance(TestUser.USER1, baseCoin, quoteCoin, market);
+  const { totalValue: totalValueWhenStart } = await totalBalance(user_id, baseCoin, quoteCoin, market);
   while (true) {
     if (VERBOSE) {
       console.log("count:", count);
@@ -52,10 +43,10 @@ async function main() {
         const t = Date.now() / 1000; // ms
         console.log("stats of", bot.name);
         console.log("orders:");
-        console.log(await defaultClient.orderQuery(TestUser.USER1, market));
+        console.log(await defaultClient.orderQuery(user_id, market));
         console.log("balances:");
-        await printBalance(TestUser.USER1, baseCoin, quoteCoin, market);
-        let { totalValue } = await totalBalance(TestUser.USER1, baseCoin, quoteCoin, market);
+        await printBalance(user_id, baseCoin, quoteCoin, market);
+        let { totalValue } = await totalBalance(user_id, baseCoin, quoteCoin, market);
         balanceStats.push([t, totalValue]);
         if (balanceStats.length >= 2) {
           const pastHour = (t - startTime) / 3600;
@@ -68,19 +59,24 @@ async function main() {
         }
       }
 
-      const oldOrders = await defaultClient.orderQuery(TestUser.USER1, market);
+      const oldOrders = await defaultClient.orderQuery(user_id, market);
       if (VERBOSE) {
         console.log("oldOrders", oldOrders);
       }
 
-      const balance = await defaultClient.balanceQuery(TestUser.USER1);
+      const balance = await defaultClient.balanceQuery(user_id);
       const { reset, orders } = await bot.tick(balance, oldOrders);
 
-      await executeOrders(defaultClient, market, TestUser.USER1, reset, orders, 0.001, false);
+      await executeOrders(defaultClient, market, user_id, reset, orders, 0.001, false);
     } catch (e) {
       console.log("err", e);
+      // clear the token cache to get new tokens if the signature is expired
+      if (e.details === "ExpiredSignature") {
+        defaultClient.clearTokenCache();
+      }
     }
   }
 }
 
-main();
+main(TestUser.USER1);
+main(TestUser.USER2);

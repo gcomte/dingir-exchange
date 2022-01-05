@@ -16,6 +16,21 @@ export enum TestUser {
   USER2,
 }
 
+export const credentials = {
+  [TestUser.ADMIN]: {
+    username: process.env.KC_ADMIN_NAME,
+    password: process.env.KC_ADMIN_PASSWORD,
+  },
+  [TestUser.USER1]: {
+    username: process.env.KC_USER1_NAME,
+    password: process.env.KC_USER1_PASSWORD,
+  },
+  [TestUser.USER2]: {
+    username: process.env.KC_USER2_NAME,
+    password: process.env.KC_USER2_PASSWORD,
+  },
+};
+
 export const base = "DIF";
 export const quote = "BTC";
 export const market = `${base}_${quote}`;

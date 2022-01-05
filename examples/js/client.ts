@@ -1,10 +1,10 @@
 import * as caller from "@eeston/grpc-caller";
 import Decimal from "decimal.js";
 import { OrderInput, TransferTx, WithdrawTx } from "fluidex.js";
-import { TestUser, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE } from "./config";
+import { TestUser, ORDER_SIDE_BID, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, VERBOSE, credentials } from "./config";
 import { Authentication } from "./authentication";
 
-const file = "../../orchestra/proto/exchange/matchengine.proto";
+const file = "./matchengine.proto";
 const load = {
   keepCase: true,
   longs: String,
@@ -22,6 +22,7 @@ class Client {
   markets: Map<string, any> = new Map();
   assets: Map<string, any> = new Map();
   auth: Authentication = new Authentication();
+
   constructor(server = process.env.GRPC_SERVER || "localhost:50051") {
     console.log("using grpc", server);
     this.client = caller(`${server}`, { file, load }, "Matchengine");
@@ -264,6 +265,10 @@ class Client {
 
   async debugReload(auth_header) {
     return await this.client.DebugReload({}, auth_header);
+  }
+
+  clearTokenCache() {
+    this.auth.tokens.clear();
   }
 }
 

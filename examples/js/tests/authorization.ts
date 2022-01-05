@@ -334,7 +334,7 @@ async function testAdminEndpoints(auth: Authentication) {
   let new_asset = {
     assets: [{ id: newAssetName, symbol: newAssetName, name: newAssetName, prec_save: 4, prec_show: 4 }],
     not_reload: false,
-    jwt: await auth.getAdminAuthToken(),
+    jwt: await auth.getAuthTokenMetaValue(TestUser.ADMIN),
   };
 
   // must not work without authentication ...
