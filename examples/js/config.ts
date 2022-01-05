@@ -9,7 +9,6 @@ export const ORDER_SIDE_BID = 1;
 export const ORDER_TYPE_LIMIT = 0;
 export const ORDER_TYPE_MARKET = 1;
 
-// fake data
 export enum TestUser {
   ADMIN,
   DEPOSIT_ADMIN,
