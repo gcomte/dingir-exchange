@@ -23,6 +23,10 @@ class Authentication {
   async getAuthTokenMetaValue(user: TestUser) {
     const c = credentials[user];
 
+    if (!c) {
+      return null;
+    }
+
     if (!this.tokens.has(user)) {
       const token = await this.getUserAuthToken(c.username, c.password);
       this.tokens.set(user, token);
