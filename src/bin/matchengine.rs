@@ -10,7 +10,6 @@ use dingir_exchange::controller::create_controller;
 use dingir_exchange::matchengine::authentication;
 use dingir_exchange::persist;
 use dingir_exchange::server::GrpcHandler;
-use dingir_exchange::matchengine::authentication;
 //use dingir_exchange::sqlxextend;
 
 use dingir_exchange::types::ConnectionType;
