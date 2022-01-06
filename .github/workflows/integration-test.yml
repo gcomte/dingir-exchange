@@ -135,6 +135,10 @@ jobs:
           echo JWT_INVALID_SIGNATURE=${{ secrets.JWT_INVALID_SIGNATURE }} >> ./examples/js/.env
           echo JWT_EXPIRED=${{ secrets.JWT_EXPIRED }} >> ./examples/js/.env
           cat ./examples/js/.env
+      
+      - name: Copy protofile to js tests
+        run: cp ./orchestra/proto/exchange/matchengine.proto ./examples/js/matchengine.proto
+
       - name: Run trading tests
         run: |
           cd ./examples/js/
