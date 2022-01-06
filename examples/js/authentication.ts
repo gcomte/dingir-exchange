@@ -31,7 +31,7 @@ class Authentication {
       const token = await this.getUserAuthToken(c.username, c.password);
       this.tokens.set(user, token);
     }
-    return this.tokens.get(user);
+    return `Bearer ${this.tokens.get(user)}`;
   }
 
   async getUserAuthToken(user, password) {
