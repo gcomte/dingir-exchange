@@ -15,25 +15,26 @@ async function infoList() {
 async function setupAsset() {
   // check balance is zero
   const balance1 = await client.balanceQuery(askUser);
-  let btcBalance = balance1.get("BTC");
-  let difBalance = balance1.get("DIF");
-  assertDecimalEqual(btcBalance.available, "0");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "0");
-  assertDecimalEqual(difBalance.frozen, "0");
+  let usdtBalance = balance1.get("USDT");
+  let ethBalance = balance1.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "0");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "0");
+  assertDecimalEqual(ethBalance.frozen, "0");
 
-  await depositAssets({ BTC: "100.0", DIF: "50.0" }, askUser);
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, askUser);
 
   // check deposit success
   const balance2 = await client.balanceQuery(askUser);
-  btcBalance = balance2.get("BTC");
-  difBalance = balance2.get("DIF");
-  assertDecimalEqual(btcBalance.available, "100");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "50");
-  assertDecimalEqual(difBalance.frozen, "0");
 
-  await depositAssets({ BTC: "100.0", DIF: "50.0" }, bidUser);
+  usdtBalance = balance2.get("USDT");
+  ethBalance = balance2.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "100");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "50");
+  assertDecimalEqual(ethBalance.frozen, "0");
+
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, bidUser);
 }
 
 async function wrongBidPriceTest() {
@@ -45,20 +46,20 @@ async function wrongBidPriceTest() {
 
   // the trade should have happend with a price of "2"
   const balanceAsk = await client.balanceQuery(askUser);
-  let btcBalance = balanceAsk.get("BTC");
-  let difBalance = balanceAsk.get("DIF");
-  assertDecimalEqual(btcBalance.available, "108");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "46");
-  assertDecimalEqual(difBalance.frozen, "0");
+  let usdtBalance = balanceAsk.get("USDT");
+  let ethBalance = balanceAsk.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "108");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "46");
+  assertDecimalEqual(ethBalance.frozen, "0");
 
   const balanceBid = await client.balanceQuery(bidUser);
-  btcBalance = balanceBid.get("BTC");
-  difBalance = balanceBid.get("DIF");
-  assertDecimalEqual(btcBalance.available, "92");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "54");
-  assertDecimalEqual(difBalance.frozen, "0");
+  usdtBalance = balanceBid.get("USDT");
+  ethBalance = balanceBid.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "92");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "54");
+  assertDecimalEqual(ethBalance.frozen, "0");
 
   console.log("wrongBidPriceTest successfull");
 }
@@ -72,20 +73,20 @@ async function wrongAskPriceTest() {
 
   // the trade should have happend with a price of "2"
   const balanceAsk = await client.balanceQuery(askUser);
-  let btcBalance = balanceAsk.get("BTC");
-  let difBalance = balanceAsk.get("DIF");
-  assertDecimalEqual(btcBalance.available, "116");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "42");
-  assertDecimalEqual(difBalance.frozen, "0");
+  let usdtBalance = balanceAsk.get("USDT");
+  let ethBalance = balanceAsk.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "116");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "42");
+  assertDecimalEqual(ethBalance.frozen, "0");
 
   const balanceBid = await client.balanceQuery(bidUser);
-  btcBalance = balanceBid.get("BTC");
-  difBalance = balanceBid.get("DIF");
-  assertDecimalEqual(btcBalance.available, "84");
-  assertDecimalEqual(btcBalance.frozen, "0");
-  assertDecimalEqual(difBalance.available, "58");
-  assertDecimalEqual(difBalance.frozen, "0");
+  usdtBalance = balanceBid.get("USDT");
+  ethBalance = balanceBid.get("ETH");
+  assertDecimalEqual(usdtBalance.available, "84");
+  assertDecimalEqual(usdtBalance.frozen, "0");
+  assertDecimalEqual(ethBalance.available, "58");
+  assertDecimalEqual(ethBalance.frozen, "0");
 
   console.log("wrongAskPriceTest successfull");
 }
