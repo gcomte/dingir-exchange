@@ -89,6 +89,7 @@ async function wrongBidPriceWithBigVolumeTest() {
   const openOrders = await client.orderQuery(bidUser, market);
 
   assertDecimalEqual(openOrders.orders[0].remain, "6");
+  assertDecimalEqual(openOrders.orders[0].price, "10");
 
   console.log("wrongBidPriceWithBigVolumeTest successfull");
 }
@@ -125,6 +126,7 @@ async function wrongAskPriceWithBigVolumeTest() {
   const openOrders = await client.orderQuery(askUser, market);
 
   assertDecimalEqual(openOrders.orders[0].remain, "6");
+  assertDecimalEqual(openOrders.orders[0].price, "0.1");
 
   console.log("wrongAskPriceWithBigVolumeTest successfull");
 }
