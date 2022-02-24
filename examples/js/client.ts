@@ -88,6 +88,8 @@ class Client {
   }
 
   async balanceUpdate(transactionAdmin, user_id, asset, business, business_id, delta, detail) {
+    let meta = transactionAdmin === null ? {} : await this.auth.getAuthTokenMeta(transactionAdmin);
+
     return await this.client.BalanceUpdate(
       {
         user_id,
@@ -97,7 +99,7 @@ class Client {
         delta,
         detail: JSON.stringify(detail),
       },
-      await this.auth.getAuthTokenMeta(transactionAdmin)
+      meta
     );
   }
   roundOrderInput(market, amount, price) {
