@@ -111,7 +111,7 @@ async function grpcRejectUserWithoutToken() {
       /* do nothing */
     };
 
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, NON_EXISTANT_USER);
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, NON_EXISTANT_USER);
 
     // reactivate logging
     console.log = console_log;
@@ -187,7 +187,7 @@ async function grpcPermitAccessToRegularUser() {
   };
 
   // === SETTING UP MARKET DATA THAT IS LATER BEING USED FOR orderDetail TESTS. === //
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, TestUser.USER1);
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
   await grpcClient.orderPut(TestUser.USER1, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, "10", "1.1", fee, fee);
   await batchOrderPut(TestUser.USER1);
 

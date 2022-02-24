@@ -3,8 +3,11 @@ import { TestUser, market, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, ORDER_SIDE_BID, fee
 import { depositAssets } from "../exchange_helper";
 import { assertDecimalEqual } from "../util";
 
+const depositAdmin = TestUser.DEPOSIT_ADMIN;
 const askUser = TestUser.USER1;
+const askUserId = process.env.KC_USER1_ID;
 const bidUser = TestUser.USER2;
+const bidUserId = process.env.KC_USER2_ID;
 
 async function infoList() {
   console.log(await client.assetList({}));
@@ -22,7 +25,7 @@ async function setupAsset() {
   assertDecimalEqual(ethBalance.available, "0");
   assertDecimalEqual(ethBalance.frozen, "0");
 
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, askUser);
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, askUserId, depositAdmin);
 
   // check deposit success
   const balance2 = await client.balanceQuery(askUser);
@@ -34,7 +37,7 @@ async function setupAsset() {
   assertDecimalEqual(ethBalance.available, "50");
   assertDecimalEqual(ethBalance.frozen, "0");
 
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, bidUser);
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, bidUserId, depositAdmin);
 }
 
 async function wrongBidPriceTest() {
