@@ -1,5 +1,5 @@
 import { fee, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, TestUser } from "../config"; // dotenv
-import { defaultClient as client, defaultClient as grpcClient } from "../client";
+import { defaultClient as grpcClient } from "../client";
 import { defaultRESTClient as restClient } from "../RESTClient";
 import * as assert from "assert";
 import { Authentication } from "../authentication";
@@ -7,6 +7,8 @@ import { depositAssets } from "../exchange_helper";
 
 const GRPC_PERMISSION_DENIED_CODE = 7;
 const GRPC_PERMISSION_DENIED_TEXT = "Requires admin role.";
+const GRPC_DEPOSIT_PERMISSION_DENIED_TEXT = "Requires deposit-admin role.";
+const GRPC_WITHDRAWAL_PERMISSION_DENIED_TEXT = "Requires withdrawal-admin role.";
 const GRPC_TOKEN_NOT_FOUND_CODE = 16;
 const GRPC_TOKEN_NOT_FOUND_TEXT = "Token not found";
 const GRPC_INVALID_TOKEN_CODE = 16;
@@ -105,16 +107,7 @@ async function grpcRejectUserWithoutToken() {
   }
 
   try {
-    // surpress logging
-    let console_log = console.log;
-    console.log = function () {
-      /* do nothing */
-    };
-
     await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, NON_EXISTANT_USER);
-
-    // reactivate logging
-    console.log = console_log;
     throw Error("GRPC call must fail as no authentication token is provided!");
   } catch (e) {
     grpcAssertErrorNoTokenProvided(e);
@@ -180,22 +173,79 @@ async function grpcPermitAccessToRegularUser() {
   await grpcClient.balanceQueryWithValidToken();
   await grpcClient.orderCancelAll(TestUser.USER1, market);
 
-  // surpress logging
-  let console_log = console.log;
-  console.log = function () {
-    /* do nothing */
-  };
-
   // === SETTING UP MARKET DATA THAT IS LATER BEING USED FOR orderDetail TESTS. === //
   await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
   await grpcClient.orderPut(TestUser.USER1, market, ORDER_SIDE_BID, ORDER_TYPE_LIMIT, "10", "1.1", fee, fee);
   await batchOrderPut(TestUser.USER1);
 
-  // reactivate logging
-  console.log = console_log;
-
   await grpcClient.orderCancel(TestUser.USER1, market, 2);
   await grpcClient.orderQuery(TestUser.USER1, market);
+}
+
+async function grpcTestDepositAccess() {
+  // Deposit should begranted to the deposit admin user.
+  await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
+
+  try {
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
+    throw Error("Admin must not be able to deposit funds");
+  } catch (e) {
+    grpcAssertErrorDepositPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
+    throw Error("Withdrawal Admin must not be able to deposit funds");
+  } catch (e) {
+    grpcAssertErrorDepositPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
+    throw Error("Regular user must not be able to deposit funds");
+  } catch (e) {
+    grpcAssertErrorDepositPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, null);
+    throw Error("Anonymous must not be able to deposit funds");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
+}
+
+async function grpcTestWithdrawalAccess() {
+  // Deposit should begranted to the withdrawal admin user.
+  await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
+
+  try {
+    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
+    throw Error("Admin must not be able to withdraw funds");
+  } catch (e) {
+    grpcAssertErrorWithdrawalPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
+    throw Error("Deposit Admin must not be able to withdraw funds");
+  } catch (e) {
+    grpcAssertErrorWithdrawalPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
+    throw Error("Regular user must not be able to withdraw funds");
+  } catch (e) {
+    grpcAssertErrorWithdrawalPermissionDenied(e);
+  }
+
+  try {
+    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, null);
+    throw Error("Anonymous must not be able to withdraw funds");
+  } catch (e) {
+    grpcAssertErrorNoTokenProvided(e);
+  }
 }
 
 async function grpcTestPublicEndpoints() {
@@ -391,6 +441,16 @@ function grpcAssertErrorPermissionDenied(error) {
   assert.equal(error.details, GRPC_PERMISSION_DENIED_TEXT);
 }
 
+function grpcAssertErrorDepositPermissionDenied(error) {
+  assert.equal(error.code, GRPC_PERMISSION_DENIED_CODE);
+  assert.equal(error.details, GRPC_DEPOSIT_PERMISSION_DENIED_TEXT);
+}
+
+function grpcAssertErrorWithdrawalPermissionDenied(error) {
+  assert.equal(error.code, GRPC_PERMISSION_DENIED_CODE);
+  assert.equal(error.details, GRPC_WITHDRAWAL_PERMISSION_DENIED_TEXT);
+}
+
 function grpcAssertErrorNoTokenProvided(error) {
   assert.equal(error.code, GRPC_TOKEN_NOT_FOUND_CODE);
   assert.equal(error.details, GRPC_TOKEN_NOT_FOUND_TEXT);
@@ -417,10 +477,14 @@ function restAssertAuthenticationNotSatisfactory(error) {
 }
 
 async function main() {
+  // disable logging
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  console.log = () => {};
+
   let auth = new Authentication();
 
   try {
-    console.log("GRPC authentication");
+    console.info("GRPC authentication");
     await grpcPermitAdminAccess();
     await grpcRejectUserAccessingAdminCalls();
     await grpcRejectAnonymousAccessingAdminCalls();
@@ -429,8 +493,10 @@ async function main() {
     await grpcRejectUserWithInvalidSignatureToken();
     await grpcRejectUserWithExpiredToken();
     await grpcPermitAccessToRegularUser();
+    await grpcTestDepositAccess();
+    await grpcTestWithdrawalAccess();
     await grpcTestPublicEndpoints();
-    console.log("REST authentication");
+    console.info("REST authentication");
     await restRejectUserWithoutToken();
     await restRejectUserWithInvalidToken();
     await restRejectUserWithInvalidToken2();
@@ -441,7 +507,7 @@ async function main() {
     await restTestRegularEndpoints(auth);
     await testAdminEndpoints(auth);
 
-    console.log("Authorization tests successful!");
+    console.info("Authorization tests successful!");
   } catch (error) {
     console.error("Caught error:", error);
     process.exit(1);

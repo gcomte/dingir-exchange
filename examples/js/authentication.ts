@@ -60,8 +60,8 @@ class Authentication {
     // cache the token
     if (this.withdrawalAdminToken == undefined) {
       this.withdrawalAdminToken = await this.getUserAuthToken(
-        process.env.KC_WITHDRAWAl_ADMIN_NAME,
-        process.env.KC_WITHDRAWAl_ADMIN_PASSWORD
+        process.env.KC_WITHDRAWAL_ADMIN_NAME,
+        process.env.KC_WITHDRAWAL_ADMIN_PASSWORD
       );
     }
 
