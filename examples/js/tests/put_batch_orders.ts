@@ -12,12 +12,12 @@ async function initClient() {
 }
 
 async function initAssets() {
-  await depositAssets({ USDT: "500000.0" }, TestUser.USER1);
+  await depositAssets({ USDT: "500000.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
   for (const [name, info] of client.markets) {
     const base = info.base;
     const depositReq = {};
     depositReq[base] = "10";
-    await depositAssets(depositReq, TestUser.USER1);
+    await depositAssets(depositReq, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
   }
 }
 
