@@ -87,16 +87,17 @@ class Client {
     return await this.client.OrderQuery({ market }, await this.auth.getAuthTokenMeta(user_id));
   }
 
-  async balanceUpdate(user, asset, business, business_id, delta, detail) {
+  async balanceUpdate(transactionAdmin, user_id, asset, business, business_id, delta, detail) {
     return await this.client.BalanceUpdate(
       {
+        user_id,
         asset,
         business,
         business_id,
         delta,
         detail: JSON.stringify(detail),
       },
-      await this.auth.getAuthTokenMeta(user)
+      await this.auth.getAuthTokenMeta(transactionAdmin)
     );
   }
   roundOrderInput(market, amount, price) {
