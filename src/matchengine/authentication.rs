@@ -76,6 +76,8 @@ fn get_user_extension(token: TokenData<Claims>) -> UserExtension {
 
     UserExtension {
         is_admin: token.claims.has_role(&settings.keycloak_admin_role),
+        is_deposit_admin: token.claims.has_role(&settings.keycloak_deposit_admin_role),
+        is_withdrawal_admin: token.claims.has_role(&settings.keycloak_withdrawal_admin_role),
         user_id: token.claims.sub,
     }
 }
@@ -144,6 +146,8 @@ pub struct JwtExtension {
 pub struct UserExtension {
     pub user_id: Uuid,
     pub is_admin: bool,
+    pub is_deposit_admin: bool,
+    pub is_withdrawal_admin: bool,
 }
 
 fn get_current_unix_timestamp() -> u64 {

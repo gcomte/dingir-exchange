@@ -4,3 +4,5 @@ db_history: postgres://exchange:exchange_AA9944@exchange-pq/exchange
 brokers: 'exchange-kafka:9092'
 keycloak_pubkey: "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAiHRZizBKplHW1kWfict22abyR4AvfBQBeZnqMYz0b8++itZYCDd8/6tnx7WlwvXgzOHJRzD6dvPbwEybO9M4FpcNKD4cx2za+CnR8Mr+FvQdP+5LLbPged2wEsx0IsR1HtPDmFIHmIIkvC9fNSx4a2R+ACnVZ2K24kijdTA3Lr9Kc7oVkWm9eRNa+IfrjCelk2qvMfz3i5pylRhBhOL9pSRy0OEaJo/o9YCG7eCOUiGyotr2GGGlnEala5CPf/MQOOQA+E10baPXHjEazOQV5k8dhnY508/EXqoW1zieivnQ4EUxcF4i5uyGFQPqtgvpXZ4SETNMLbv9HOcTSpvHlx2M/dxjuF8MLlgWHAus250C2StivwCX0T3s/tzTuOfSQOxiuwd3AieUbO2DPLR/U6DYPk6nebyN1wPWVnr0Sn5hizDrpupMNH70/JZZnUt/wPfoTCW4DMlTz9XSfHunH1tTz4L9ZBQCxU3+ULZFRVWV5OgoKBPyrVa0myamC43pXPORDCF69hc4Ovh9UIKCvU2VL6RSXR5OzeTh0M0p3FK/i6UG3OB+K/rv29e6V4epyHwKLkEzqlbbqQNkMaFcG6NoOJugeBpdjlryopS4+XUpC2u1U8wwrkVHnIsnt07OwAgGqp5EAuzWI5Pq6OQjiH6DhQPuNIW8TCXCToGWv10CAwEAAQ==\n-----END PUBLIC KEY-----"
 keycloak_admin_role: 'matchengine-admin'
+keycloak_deposit_admin_role: 'deposit-admin'
+keycloak_withdrawal_admin_role: 'withdrawal-admin'

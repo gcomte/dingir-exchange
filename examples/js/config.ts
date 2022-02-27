@@ -12,6 +12,8 @@ export const ORDER_TYPE_MARKET = 1;
 // fake data
 export enum TestUser {
   ADMIN,
+  DEPOSIT_ADMIN,
+  WITHDRAWAL_ADMIN,
   USER1,
   USER2,
 }

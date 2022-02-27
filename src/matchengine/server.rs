@@ -1,8 +1,10 @@
 use crate::config::Settings;
 use crate::controller::Controller;
 
+use fluidex_common::rust_decimal::Decimal;
 use std::fmt::Debug;
 use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::matchengine::authentication::UserExtension;
@@ -181,10 +183,16 @@ impl matchengine_server::Matchengine for GrpcHandler {
     async fn balance_update(&self, request: Request<BalanceUpdateRequest>) -> Result<Response<BalanceUpdateResponse>, Status> {
         grpc_block_anonymous(&request)?;
 
-        let user_id = get_user_id_from_request(&request);
-        let ControllerDispatch(act, rt) = ControllerDispatch::new(move |ctrl: &mut Controller| {
-            Box::pin(async move { ctrl.update_balance(true, request.into_inner(), user_id) })
-        });
+        let amount = Decimal::from_str(request.get_ref().delta.as_str()).map_err(|_| Status::invalid_argument("invalid amount"))?;
+        match amount.is_sign_positive() {
+            true => grpc_block_non_deposit_admins(&request)?,
+            false => grpc_block_non_withdrawal_admins(&request)?,
+        }
+
+        let req = request.into_inner();
+        let user_id = Uuid::parse_str(&req.user_id).map_err(|_| Status::invalid_argument("User id is not a valid UUID"))?;
+        let ControllerDispatch(act, rt) =
+            ControllerDispatch::new(move |ctrl: &mut Controller| Box::pin(async move { ctrl.update_balance(true, req, user_id) }));
 
         self.task_dispatcher.send(act).await.map_err(map_dispatch_err)?;
         map_dispatch_ret(rt.await)
@@ -338,6 +346,38 @@ fn grpc_block_non_admins<T>(request: &Request<T>) -> Result<(), Status> {
             if !user_extension.is_admin {
                 log::warn!("Reject GRPC call; User {} does not have admin rights.", user_extension.user_id);
                 return Err(Status::permission_denied("Requires admin role."));
+            }
+        }
+        None => return Err(credentials_missing()),
+    }
+
+    Ok(())
+}
+
+fn grpc_block_non_deposit_admins<T>(request: &Request<T>) -> Result<(), Status> {
+    let user_extension: Option<&UserExtension> = request.extensions().get::<UserExtension>();
+
+    match user_extension {
+        Some(user_extension) => {
+            if !user_extension.is_deposit_admin {
+                log::warn!("Reject GRPC call; User {} does not have deposit rights.", user_extension.user_id);
+                return Err(Status::permission_denied("Requires deposit-admin role."));
+            }
+        }
+        None => return Err(credentials_missing()),
+    }
+
+    Ok(())
+}
+
+fn grpc_block_non_withdrawal_admins<T>(request: &Request<T>) -> Result<(), Status> {
+    let user_extension: Option<&UserExtension> = request.extensions().get::<UserExtension>();
+
+    match user_extension {
+        Some(user_extension) => {
+            if !user_extension.is_withdrawal_admin {
+                log::warn!("Reject GRPC call; User {} does not have withdrawal rights.", user_extension.user_id);
+                return Err(Status::permission_denied("Requires withdrawal-admin role."));
             }
         }
         None => return Err(credentials_missing()),

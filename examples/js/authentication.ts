@@ -3,6 +3,8 @@ import { TestUser } from "./config";
 
 class Authentication {
   adminToken: undefined;
+  depositAdminToken: undefined;
+  withdrawalAdminToken: undefined;
   user1Token: undefined;
   user2Token: undefined;
 
@@ -26,6 +28,10 @@ class Authentication {
     switch (user) {
       case TestUser.ADMIN:
         return "Bearer " + (await this.getAdminAuthToken());
+      case TestUser.DEPOSIT_ADMIN:
+        return "Bearer " + (await this.getDepositAdminAuthToken());
+      case TestUser.WITHDRAWAL_ADMIN:
+        return "Bearer " + (await this.getWithdrawalAdminAuthToken());
       case TestUser.USER1:
         return "Bearer " + (await this.getUser1AuthToken());
       case TestUser.USER2:
@@ -40,6 +46,26 @@ class Authentication {
     }
 
     return this.adminToken;
+  }
+
+  async getDepositAdminAuthToken() {
+    // cache the token
+    if (this.depositAdminToken == undefined) {
+      this.depositAdminToken = await this.getUserAuthToken(process.env.KC_DEPOSIT_ADMIN_NAME, process.env.KC_DEPOSIT_ADMIN_PASSWORD);
+    }
+
+    return this.depositAdminToken;
+  }
+  async getWithdrawalAdminAuthToken() {
+    // cache the token
+    if (this.withdrawalAdminToken == undefined) {
+      this.withdrawalAdminToken = await this.getUserAuthToken(
+        process.env.KC_WITHDRAWAl_ADMIN_NAME,
+        process.env.KC_WITHDRAWAl_ADMIN_PASSWORD
+      );
+    }
+
+    return this.withdrawalAdminToken;
   }
 
   async getUser1AuthToken() {
