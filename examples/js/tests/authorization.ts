@@ -184,31 +184,31 @@ async function grpcPermitAccessToRegularUser() {
 
 async function grpcTestDepositAccess() {
   // Deposit should begranted to the deposit admin user.
-  await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
+  await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
 
   try {
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
+    await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
     throw Error("Admin must not be able to deposit funds");
   } catch (e) {
     grpcAssertErrorDepositPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
+    await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
     throw Error("Withdrawal Admin must not be able to deposit funds");
   } catch (e) {
     grpcAssertErrorDepositPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
+    await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
     throw Error("Regular user must not be able to deposit funds");
   } catch (e) {
     grpcAssertErrorDepositPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "100.0", ETH: "50.0" }, process.env.KC_USER1_ID, null);
+    await depositAssets({ BTC: "100.0", DIF: "50.0" }, process.env.KC_USER1_ID, null);
     throw Error("Anonymous must not be able to deposit funds");
   } catch (e) {
     grpcAssertErrorNoTokenProvided(e);
@@ -217,31 +217,31 @@ async function grpcTestDepositAccess() {
 
 async function grpcTestWithdrawalAccess() {
   // Deposit should begranted to the withdrawal admin user.
-  await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
+  await depositAssets({ BTC: "-100.0", DIF: "-50.0" }, process.env.KC_USER1_ID, TestUser.WITHDRAWAL_ADMIN);
 
   try {
-    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
+    await depositAssets({ BTC: "-100.0", DIF: "-50.0" }, process.env.KC_USER1_ID, TestUser.ADMIN);
     throw Error("Admin must not be able to withdraw funds");
   } catch (e) {
     grpcAssertErrorWithdrawalPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
+    await depositAssets({ BTC: "-100.0", DIF: "-50.0" }, process.env.KC_USER1_ID, TestUser.DEPOSIT_ADMIN);
     throw Error("Deposit Admin must not be able to withdraw funds");
   } catch (e) {
     grpcAssertErrorWithdrawalPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
+    await depositAssets({ BTC: "-100.0", DIF: "-50.0" }, process.env.KC_USER1_ID, TestUser.USER1);
     throw Error("Regular user must not be able to withdraw funds");
   } catch (e) {
     grpcAssertErrorWithdrawalPermissionDenied(e);
   }
 
   try {
-    await depositAssets({ USDT: "-100.0", ETH: "-50.0" }, process.env.KC_USER1_ID, null);
+    await depositAssets({ BTC: "-100.0", DIF: "-50.0" }, process.env.KC_USER1_ID, null);
     throw Error("Anonymous must not be able to withdraw funds");
   } catch (e) {
     grpcAssertErrorNoTokenProvided(e);
