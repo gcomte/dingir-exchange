@@ -89,7 +89,8 @@ impl BalanceManager {
         self.set_by_key(key, amount);
     }
     pub fn set_by_key(&mut self, key: BalanceMapKey, amount: &Decimal) {
-        debug_assert!(amount.is_sign_positive());
+        // not true for derivatives exchange
+        // debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(&key.asset));
         //log::debug!("set balance: {:?}, {}", key, amount);
         self.balances.insert(key, amount);
@@ -116,9 +117,11 @@ impl BalanceManager {
             asset: asset.to_owned(),
         };
         let old_value = self.get_by_key(&key);
-        debug_assert!(old_value.ge(&amount));
+        // not true for derivatives exchange
+        // debug_assert!(old_value.ge(&amount));
         let new_value = old_value - amount;
-        debug_assert!(new_value.is_sign_positive());
+        // not true for derivatives exchange
+        // debug_assert!(new_value.is_sign_positive());
         // TODO don't remove it. Skip when sql insert
         /*
         if result.is_zero() {
@@ -131,29 +134,35 @@ impl BalanceManager {
         new_value
     }
     pub fn frozen(&mut self, user_id: Uuid, asset: &str, amount: &Decimal) {
-        debug_assert!(amount.is_sign_positive());
+        // not true for derivatives exchange
+        // debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
-        let key = BalanceMapKey {
-            user_id,
-            balance_type: BalanceType::AVAILABLE,
-            asset: asset.to_owned(),
-        };
-        let old_available_value = self.get_by_key(&key);
-        debug_assert!(old_available_value.ge(&amount));
+        // let key = BalanceMapKey {
+        //     user_id,
+        //     balance_type: BalanceType::AVAILABLE,
+        //     asset: asset.to_owned(),
+        // };
+
+        // not true for derivatives exchange
+        // let old_available_value = self.get_by_key(&key);
+        // debug_assert!(old_available_value.ge(&amount));
         self.sub(user_id, BalanceType::AVAILABLE, asset, &amount);
         self.add(user_id, BalanceType::FREEZE, asset, &amount);
     }
     pub fn unfrozen(&mut self, user_id: Uuid, asset: &str, amount: &Decimal) {
-        debug_assert!(amount.is_sign_positive());
+        // not true for derivatives exchange
+        // debug_assert!(amount.is_sign_positive());
         let amount = amount.round_dp(self.asset_manager.asset_prec(asset));
+        let amount_positive = amount.abs();
         let key = BalanceMapKey {
             user_id,
             balance_type: BalanceType::FREEZE,
             asset: asset.to_owned(),
         };
         let old_frozen_value = self.get_by_key(&key);
+        let old_frozen_value_positive = old_frozen_value.abs();
         debug_assert!(
-            old_frozen_value.ge(&amount),
+            old_frozen_value_positive.ge(&amount_positive),
             "unfreeze larger than frozen {} > {}",
             amount,
             old_frozen_value

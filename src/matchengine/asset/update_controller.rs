@@ -94,15 +94,16 @@ impl BalanceUpdateController {
         if self.cache.contains_key(&cache_key) {
             bail!("duplicate request");
         }
-        let old_balance = balance_manager.get(user_id, balance_type, &asset);
+        //let old_balance = balance_manager.get(user_id, balance_type, &asset);
         let change = params.change;
         let abs_change = change.abs();
         if change.is_sign_positive() {
             balance_manager.add(user_id, balance_type, &asset, &abs_change);
         } else if change.is_sign_negative() {
-            if old_balance < abs_change {
-                bail!("balance not enough");
-            }
+            // not true for derivatives exchange
+            // if old_balance < abs_change {
+            //     bail!("balance not enough");
+            // }
             balance_manager.sub(user_id, balance_type, &asset, &abs_change);
         }
         log::debug!("change user balance: {} {} {}", user_id, asset, change);

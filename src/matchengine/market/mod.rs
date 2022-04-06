@@ -194,6 +194,11 @@ impl Market {
             bail!("invalid price for limit order");
         }
 
+        /* Since we are developing a Derivatives Exchange instead of a spot exchange,
+         * we want to allow users to go beyond their balances.
+         * This allows for shorting positions as well as leverage.
+         * In fact, open interest should always result in zero (all Long positions - all short positions = 0)
+
         if order_input.side == OrderSide::ASK {
             if balance_manager
                 .balance_get(user_id.to_string(), BalanceType::AVAILABLE, self.base)
@@ -228,6 +233,8 @@ impl Market {
                 //}
             }
         }
+        */
+
         let quote_limit = if order_input.type_ == OrderType::MARKET && order_input.side == OrderSide::BID {
             let balance = balance_manager.balance_get(user_id.to_string(), BalanceType::AVAILABLE, self.quote);
             if order_input.quote_limit.is_zero() {
