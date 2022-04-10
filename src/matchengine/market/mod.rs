@@ -8,6 +8,7 @@ use crate::types::{self, MarketRole, OrderEventType};
 use std::cmp::min;
 use std::collections::BTreeMap;
 use std::iter::Iterator;
+use std::ops::{Add, Sub};
 
 use anyhow::{bail, Result};
 use fluidex_common::rust_decimal::prelude::Zero;
@@ -43,6 +44,8 @@ pub struct Market {
     pub bids: BTreeMap<MarketKeyBid, OrderRc>,
 
     pub trade_count: u64,
+    pub volume: Decimal,
+    pub open_interest: Decimal,
 
     pub disable_self_trade: bool,
     pub disable_market_order: bool,
@@ -124,6 +127,8 @@ impl Market {
             asks: BTreeMap::new(),
             bids: BTreeMap::new(),
             trade_count: 0,
+            volume: Decimal::zero(),
+            open_interest: Decimal::zero(),
             disable_self_trade: global_settings.disable_self_trade,
             disable_market_order: global_settings.disable_market_order,
         };
@@ -420,6 +425,9 @@ impl Market {
             #[cfg(feature = "emit_state_diff")]
             let state_before = Self::get_trade_state(ask_order, bid_order, balance_manager, self.base, self.quote);
             self.trade_count += 1;
+            self.volume += traded_base_amount;
+            self.open_interest += Market::get_oi_change(balance_manager, bid_order.user, ask_order.user, &self.base, traded_base_amount);
+
             if self.disable_self_trade {
                 debug_assert_ne!(trade.ask_user_id, trade.bid_user_id);
             }
@@ -586,6 +594,31 @@ impl Market {
         taker
     }
 
+    fn get_oi_change(
+        balance_manager: &mut BalanceManagerWrapper<'_>,
+        bid_user: Uuid,
+        aks_user: Uuid,
+        base_asset: &str,
+        traded_base_amount: Decimal,
+    ) -> Decimal {
+        let total_base_balance_bid_user = Market::get_total_balance(balance_manager, bid_user, &base_asset);
+        let base_longs_bid_user_b4_trade = total_base_balance_bid_user.max(0.into());
+        let base_longs_bid_user_after_trade = total_base_balance_bid_user.add(traded_base_amount).max(0.into());
+
+        let total_base_balance_ask_user = Market::get_total_balance(balance_manager, aks_user, &base_asset);
+        let base_longs_ask_user_b4_trade = total_base_balance_ask_user.max(0.into());
+        let base_longs_ask_user_after_trade = total_base_balance_ask_user.sub(traded_base_amount).max(0.into());
+
+        let base_longs_b4_trade = base_longs_bid_user_b4_trade + base_longs_ask_user_b4_trade;
+        let base_longs_after_trade = base_longs_bid_user_after_trade + base_longs_ask_user_after_trade;
+
+        base_longs_after_trade - base_longs_b4_trade
+    }
+
+    fn get_total_balance(balance_manager: &mut BalanceManagerWrapper<'_>, user: Uuid, asset: &str) -> Decimal {
+        balance_manager.inner.get(user, BalanceType::AVAILABLE, asset) + balance_manager.inner.get(user, BalanceType::FREEZE, asset)
+    }
+
     pub fn insert_order_into_orderbook(&mut self, mut order: Order) -> Order {
         if order.side == OrderSide::ASK {
             order.frozen = order.remain;
@@ -744,6 +777,8 @@ impl Market {
             bid_count: self.bids.len(),
             bid_amount: self.bids.values().map(|item| item.borrow().remain).sum(),
             trade_count: self.trade_count,
+            volume: self.volume,
+            open_interest: self.open_interest,
         }
     }
     pub fn depth(&self, limit: usize, interval: &Decimal) -> MarketDepth {
@@ -787,6 +822,8 @@ pub struct MarketStatus {
     pub bid_count: usize,
     pub bid_amount: Decimal,
     pub trade_count: u64,
+    pub volume: Decimal,
+    pub open_interest: Decimal,
 }
 
 pub struct PriceInfo {
