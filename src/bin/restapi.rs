@@ -77,8 +77,7 @@ async fn main() -> std::io::Result<()> {
                             .route("/config", web::get().to(chart_config))
                             .route("/search", web::get().to(search_symbols))
                             .route("/symbols", web::get().to(symbols))
-                            .route("/history", web::get().to(history)),
-                    )
+                            .route("/history", web::get().to(history)),                )
                     .service(if user_map.manage_channel.is_some() {
                         web::scope("/manage").service(
                             web::scope("/market")

@@ -25,6 +25,7 @@ class Authentication {
   }
 
   async getAuthTokenMetaValue(user) {
+    console.log("Getting token for useraaa " + user);
     switch (user) {
       case TestUser.ADMIN:
         return "Bearer " + (await this.getAdminAuthToken());
@@ -49,8 +50,10 @@ class Authentication {
   }
 
   async getDepositAdminAuthToken() {
+    console.log("Getting deposit admin token");
     // cache the token
     if (this.depositAdminToken == undefined) {
+      console.log("Deposit admin token is undefined, getting from environment");
       this.depositAdminToken = await this.getUserAuthToken(process.env.KC_DEPOSIT_ADMIN_NAME, process.env.KC_DEPOSIT_ADMIN_PASSWORD);
     }
 
@@ -87,8 +90,10 @@ class Authentication {
   }
 
   async getUserAuthToken(user, password) {
+    console.log("Getting token for user " + user);
+    console.log("Password:" + password);
     const response = await fetch(
-      "https://" + process.env.KC_URL + "/auth/realms/" + process.env.KC_REALM + "/protocol/openid-connect/token",
+      "https://" + process.env.KC_URL + "/realms/" + process.env.KC_REALM + "/protocol/openid-connect/token",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

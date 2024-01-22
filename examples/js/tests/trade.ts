@@ -29,11 +29,13 @@ async function setupAsset() {
   assertDecimalEqual(usdtBalance.frozen, "0");
   assertDecimalEqual(ethBalance.available, "0");
   assertDecimalEqual(ethBalance.frozen, "0");
-
+  console.log("depositAssets");
   await depositAssets({ USDT: "100.0", ETH: "50.0" }, askUserId, depositAdmin);
 
   // check deposit success
+  console.log("check deposit success");
   const balance2 = await client.balanceQuery(askUser);
+  console.log(balance2);
   usdtBalance = balance2.get("USDT");
   ethBalance = balance2.get("ETH");
   console.log(usdtBalance);
@@ -130,8 +132,13 @@ async function testStatusAfterTrade(askOrderId, bidOrderId) {
 }
 
 async function simpleTest() {
+  console.log("simpleTest");
+  await infoList();
+  console.log("setupAsset");
   await setupAsset();
+  console.log("orderTest");
   await orderTest();
+  console.log("tradeTest");
   return await tradeTest();
 }
 

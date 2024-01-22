@@ -1,4 +1,5 @@
 use config_rs::{Config, File};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -39,7 +40,12 @@ impl Default for Settings {
 
 impl Settings {
     pub fn new() -> Self {
+        println!("Loading config");
         let mut conf = Config::default();
+        println!(
+            "Loading config from {}",
+            "config/restapi/default.yaml".to_string()
+        );
         conf.merge(File::with_name("config/restapi/default.yaml")).unwrap();
         conf.try_into().unwrap()
     }

@@ -29,6 +29,9 @@ export async function printBalance(printList = ["USDT", "ETH"]) {
 }
 
 export async function depositAssets(assets: any, userId: string, depositManager: number) {
+  console.log("deposit assets", assets);
+  console.log("deposit manager", depositManager);
+  console.log("deposit user", userId);
   for (const [asset, amount] of Object.entries(assets)) {
     console.log("deposit", amount, asset);
     await client.balanceUpdate(depositManager, userId, asset, "deposit", depositId(), amount, {

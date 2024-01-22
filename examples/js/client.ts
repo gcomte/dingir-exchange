@@ -67,6 +67,7 @@ class Client {
   // This call should as the authentication fails
   async balanceQueryBase(auth): Promise<Map<string, any>> {
     const balances = (await this.client.BalanceQuery({}, auth)).balances;
+    console.log("balances", balances);
     let result = new Map();
     for (const entry of balances) {
       result.set(entry.asset_id, entry);
@@ -88,8 +89,14 @@ class Client {
   }
 
   async balanceUpdate(transactionAdmin, user_id, asset, business, business_id, delta, detail) {
+    console.log("transactionAdmin", transactionAdmin);
+    console.log("user_id", user_id);
+    console.log("asset", asset);
+    console.log("business", business);
+    console.log("business_id", business_id);
+    console.log("delta", delta);
     let meta = transactionAdmin === null ? {} : await this.auth.getAuthTokenMeta(transactionAdmin);
-
+    console.log("meta", meta);
     return await this.client.BalanceUpdate(
       {
         user_id,
