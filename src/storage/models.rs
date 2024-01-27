@@ -1,10 +1,11 @@
 use crate::types::OrderSide;
 use chrono::NaiveDateTime;
-use paperclip::actix::Apiv2Schema;
+// use paperclip::actix::Apiv2Schema;
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Decimal;
 
-pub type DecimalDbType = fluidex_common::rust_decimal::Decimal;
+// pub type Decimal = fluidex_common::rust_decimal::Decimal;
 // https://github.com/launchbadge/sqlx/blob/master/sqlx-core/src/postgres/types/mod.rs
 // pub type TimestampDbType = DateTime<Utc>;
 pub type TimestampDbType = NaiveDateTime;
@@ -60,7 +61,8 @@ pub struct MarketDesc {
     pub precision_amount: i16,
     pub precision_price: i16,
     pub precision_fee: i16,
-    pub min_amount: DecimalDbType,
+    // pub min_amount: Decimal,
+    pub min_amount: Decimal,
     pub market_name: Option<String>,
 }
 
@@ -73,17 +75,17 @@ pub struct BalanceHistory {
     pub user_id: String,
     pub business_id: i64,
     pub asset: String,
-    pub business: String,
-    pub market_price: DecimalDbType,
-    pub change: DecimalDbType,
-    pub balance: DecimalDbType,
-    pub balance_available: DecimalDbType,
-    pub balance_frozen: DecimalDbType,
+    pub business: String,    
+    pub market_price: Decimal,
+    pub change: Decimal,
+    pub balance: Decimal,
+    pub balance_available: Decimal,
+    pub balance_frozen: Decimal,
     // TODO: change it to jsonb
     pub detail: String,
 }
 
-#[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize, Apiv2Schema)]
+#[derive(sqlx::Type, Debug, Clone, Serialize, Deserialize)]
 #[sqlx(type_name = "order_status", rename_all = "lowercase")]
 pub enum OrderStatus {
     Active,
@@ -92,7 +94,7 @@ pub enum OrderStatus {
     Expired,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(sqlx::FromRow, Debug, Clone, Serialize)]
 pub struct OrderHistory {
     pub id: i64,
     #[serde(with = "DateTimeMilliseconds")]
@@ -104,13 +106,13 @@ pub struct OrderHistory {
     pub market: String,
     pub order_type: types::OrderType,
     pub order_side: types::OrderSide,
-    pub price: DecimalDbType,
-    pub amount: DecimalDbType,
-    pub taker_fee: DecimalDbType,
-    pub maker_fee: DecimalDbType,
-    pub finished_base: DecimalDbType,
-    pub finished_quote: DecimalDbType,
-    pub finished_fee: DecimalDbType,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub taker_fee: Decimal,
+    pub maker_fee: Decimal,
+    pub finished_base: Decimal,
+    pub finished_quote: Decimal,
+    pub finished_fee: Decimal,
     pub post_only: bool,
 }
 
@@ -124,11 +126,11 @@ pub struct UserTrade {
     pub counter_order_id: i64,
     pub side: i16,
     pub role: i16,
-    pub price: DecimalDbType,
-    pub amount: DecimalDbType,
-    pub quote_amount: DecimalDbType,
-    pub fee: DecimalDbType,
-    pub counter_order_fee: DecimalDbType,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub quote_amount: Decimal,
+    pub fee: Decimal,
+    pub counter_order_fee: Decimal,
 }
 
 // Can the following struct be auto generated in diesel?
@@ -150,7 +152,7 @@ pub struct BalanceSlice {
     pub user_id: String,
     pub asset: String,
     pub t: i16, // Enum: AVAILABLE or FREEZE
-    pub balance: DecimalDbType,
+    pub balance: Decimal,
 }
 
 #[derive(Debug, Clone)]
@@ -160,7 +162,7 @@ pub struct BalanceSliceInsert {
     pub user_id: String,
     pub asset: String,
     pub t: i16, // Enum: AVAILABLE or FREEZE
-    pub balance: DecimalDbType,
+    pub balance: Decimal,
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]
@@ -175,15 +177,15 @@ pub struct OrderSlice {
     pub user_id: String,
     pub market: String,
     //pub source: String,
-    pub price: DecimalDbType,
-    pub amount: DecimalDbType,
-    pub taker_fee: DecimalDbType,
-    pub maker_fee: DecimalDbType,
-    pub remain: DecimalDbType,
-    pub frozen: DecimalDbType,
-    pub finished_base: DecimalDbType,
-    pub finished_quote: DecimalDbType,
-    pub finished_fee: DecimalDbType,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub taker_fee: Decimal,
+    pub maker_fee: Decimal,
+    pub remain: Decimal,
+    pub frozen: Decimal,
+    pub finished_base: Decimal,
+    pub finished_quote: Decimal,
+    pub finished_fee: Decimal,
     pub post_only: bool,
 }
 
@@ -196,15 +198,15 @@ pub struct SliceHistory {
     pub end_trade_id: i64,
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, Serialize, Apiv2Schema)]
+#[derive(sqlx::FromRow, Debug, Clone, Serialize)]
 pub struct MarketTrade {
     #[serde(with = "DateTimeMilliseconds")]
     pub time: TimestampDbType,
     pub market: String,
     pub trade_id: i64,
-    pub price: DecimalDbType,
-    pub amount: DecimalDbType,
-    pub quote_amount: DecimalDbType,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub quote_amount: Decimal,
     pub taker_side: OrderSide,
 }
 
@@ -214,7 +216,7 @@ pub struct InternalTx {
     pub user_from: String,
     pub user_to: String,
     pub asset: String,
-    pub amount: DecimalDbType,
+    pub amount: Decimal,
 }
 
 /*

@@ -4,17 +4,18 @@ use crate::models::{OrderHistory, TimestampDbType};
 use crate::restapi::errors::RpcError;
 use crate::restapi::state::AppState;
 use core::cmp::min;
+use actix_web::HttpMessage;
 use paperclip::actix::web::{self, HttpRequest, Json};
-use paperclip::actix::{api_v2_operation, Apiv2Schema};
+// use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Serialize, Apiv2Schema)]
+#[derive(Serialize)]
 pub struct OrderResponse {
     total: i64,
     orders: Vec<OrderHistory>,
 }
 
-#[api_v2_operation]
+// #[api_v2_operation]
 pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<OrderResponse>, actix_web::Error> {
     let market = req.match_info().get("market").unwrap();
     let user_id = req.extensions().get::<UserExtension>().unwrap().user_id;
@@ -52,7 +53,7 @@ pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Js
     Ok(Json(OrderResponse { total, orders }))
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Apiv2Schema)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum Order {
     #[serde(rename = "lowercase")]
     Asc,
@@ -66,7 +67,7 @@ impl Default for Order {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Apiv2Schema)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum Side {
     #[serde(rename = "lowercase")]
     From,

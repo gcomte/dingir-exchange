@@ -1,6 +1,8 @@
 use std::future::Future;
 use std::pin::Pin;
 
+use sqlx::Executor;
+
 pub enum SqlResultExt {
     QueryResult,
     Issue((i32, &'static str)),
@@ -256,7 +258,8 @@ impl InsertTableBatch {
     pub async fn sql_query_fine<'c, 'a, Q, C, DB>(qr_v: &'a [Q], conn: &'c mut C) -> Result<SqlResultExt, (Vec<Q>, sqlx::Error)>
     where
         DB: CommonSQLQueryWithBind,
-        for<'r> &'r mut C: sqlx::Executor<'r, Database = DB>,
+        // for<'r> &'r mut C: Executor<'r, Database = DB>,
+        // &mut C: Executor<Database = DB>,
         C: std::borrow::BorrowMut<C> + Send,
         Q: Clone,
         [Q]: SqlxAction<'a, Self, DB>,

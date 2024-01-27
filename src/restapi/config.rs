@@ -40,13 +40,12 @@ impl Default for Settings {
 
 impl Settings {
     pub fn new() -> Self {
-        println!("Loading config");
-        let mut conf = Config::default();
-        println!(
-            "Loading config from {}",
-            "config/restapi/default.yaml".to_string()
-        );
-        conf.merge(File::with_name("config/restapi/default.yaml")).unwrap();
-        conf.try_into().unwrap()
+        println!("Loading config from {}", "config/restapi/default.yaml".to_string());
+        let conf = Config::builder()
+            .add_source(File::with_name("config/restapi/default.yaml"))
+            .build()
+            .unwrap();
+        info!("Config loaded");
+        conf.try_deserialize().unwrap()
     }
 }

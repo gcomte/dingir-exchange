@@ -76,6 +76,35 @@ async function orderTest() {
   console.log("orderTest passed");
 }
 
+// Test order put and cancel with market order type
+async function ordertTestMarket() {
+  const order = await client.orderPut(askUser, market, ORDER_SIDE_BID, ORDER_TYPE_MARKET, /*amount*/ "10", /*price*/ "1.1", fee, fee);
+  console.log(order);
+  const balance3 = await client.balanceQueryByAsset(askUser, "USDT");
+  assertDecimalEqual(balance3.available, "89");
+  assertDecimalEqual(balance3.frozen, "11");
+
+  const orderPending = await client.orderDetail({}, market, order.id);
+  assert.deepEqual(orderPending, order);
+
+  const summary = await client.marketSummary({}, market);
+  assertDecimalEqual(summary.bid_amount, "10");
+  assert.equal(summary.bid_count, 1);
+
+  const depth = await client.orderDepth({}, market, 100, /*not merge*/ "0");
+  assert.deepEqual(depth, {
+    asks: [],
+    bids: [{ price: "1.10", amount: "10.0000" }],
+  });
+
+  await client.orderCancel(askUser, market, 1);
+  const balance4 = await client.balanceQueryByAsset(askUser, "USDT");
+  assertDecimalEqual(balance4.available, "100");
+  assertDecimalEqual(balance4.frozen, "0");
+
+  console.log("orderTest passed");
+}
+
 // Test order trading
 async function tradeTest() {
   const askOrder = await client.orderPut(askUser, market, ORDER_SIDE_ASK, ORDER_TYPE_LIMIT, /*amount*/ "4", /*price*/ "1.1", fee, fee);
@@ -138,6 +167,8 @@ async function simpleTest() {
   await setupAsset();
   console.log("orderTest");
   await orderTest();
+  console.log("ordertTestMarket");
+  await ordertTestMarket();
   console.log("tradeTest");
   return await tradeTest();
 }

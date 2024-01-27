@@ -1,6 +1,7 @@
 use std::collections::{hash_map, HashMap, VecDeque};
 use std::marker::PhantomData;
 use std::time::{Duration, Instant};
+use sqlx::Postgres;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::{sync, task};
 
@@ -318,7 +319,7 @@ where
     U: 'static + TableSchemas,
     U: for<'r> SqlxAction<'r, sqlxextend::InsertTable, DbType>,
 {
-    async fn execute(mut self, mut conn: sqlx::pool::PoolConnection<DbType>, ret: sync::mpsc::Sender<WriterMsg<U>>) {
+    async fn execute(mut self, mut conn: sqlx::PgPool, ret: sync::mpsc::Sender<WriterMsg<U>>) {
         let entries = &self.data;
 
         log::debug!(
@@ -326,6 +327,7 @@ where
             <InsertTable as CommonSQLQuery<U, sqlx::Postgres>>::sql_statement(),
             entries.len()
         );
+
         let ret = match InsertTableBatch::sql_query_fine(entries.as_slice(), &mut conn).await {
             Ok(_) => {
                 if let Some((now, len)) = self.benchmark {
@@ -504,7 +506,9 @@ where
 struct DatabaseWriterScheduleCtx<T> {
     ctrl_chn: sync::mpsc::Receiver<WriterMsg<T>>,
     ctrl_notify: sync::mpsc::Sender<WriterMsg<T>>,
-    pool: sqlx::Pool<DbType>,
+    // pool: sqlx::Pool<DbType>,
+    pool: sqlx::PgPool,
+    
     complete_notify: sync::watch::Sender<TaskNotifyFlag>,
     status_notify: sync::watch::Sender<DatabaseWriterStatus>,
 

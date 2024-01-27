@@ -4,13 +4,16 @@ use actix_web::error::InternalError;
 use actix_web::http::StatusCode;
 use futures::future::OptionFuture;
 use orchestra::rpc::exchange::*;
+
 use paperclip::actix::api_v2_operation;
 use paperclip::actix::web;
 
 pub mod market {
+    use std::str::FromStr;
+
     use super::*;
     use crate::matchengine::authentication::JwtExtension;
-    use actix_web::HttpRequest;
+    use actix_web::{HttpMessage, HttpRequest};
     use tonic::metadata::MetadataValue;
     use tonic::IntoRequest;
 
@@ -53,13 +56,13 @@ pub mod market {
         }
     }
 
-    #[api_v2_operation]
+    // #[api_v2_operation]
     pub async fn reload(req: HttpRequest, app_state: web::Data<state::AppState>) -> Result<&'static str, actix_web::Error> {
         let jwt = req.extensions().get::<JwtExtension>().unwrap().clone().jwt;
         do_reload(&jwt, &app_state.into_inner()).await
     }
 
-    #[api_v2_operation]
+    // #[api_v2_operation]
     pub async fn add_pair(
         req: web::Json<types::NewTradePairReq>,
         app_state: web::Data<state::AppState>,

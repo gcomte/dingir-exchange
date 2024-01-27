@@ -1,5 +1,5 @@
 use crate::models::tablenames::{MARKETTRADE, USERTRADE};
-use crate::models::{self, DecimalDbType, TimestampDbType};
+use crate::models::{self, TimestampDbType};
 use crate::restapi::errors::RpcError;
 use crate::restapi::state::AppState;
 use crate::restapi::types;
@@ -7,13 +7,14 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use core::cmp::min;
 use paperclip::actix::api_v2_operation;
 use paperclip::actix::web::{self, HttpRequest, Json};
+use sqlx::types::Decimal;
 
 fn check_market_exists(_market: &str) -> bool {
     // TODO
     true
 }
 
-#[api_v2_operation]
+// #[api_v2_operation]
 pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<Vec<models::MarketTrade>>, actix_web::Error> {
     let market = req.match_info().get("market").unwrap();
     let qstring = qstring::QString::from(req.query_string());
@@ -47,10 +48,10 @@ struct QueriedUserTrade {
     pub user_id: String,
     pub trade_id: i64,
     pub order_id: i64,
-    pub price: DecimalDbType,
-    pub amount: DecimalDbType,
-    pub quote_amount: DecimalDbType,
-    pub fee: DecimalDbType,
+    pub price: Decimal,
+    pub amount: Decimal,
+    pub quote_amount: Decimal,
+    pub fee: Decimal,
 }
 
 #[cfg(sqlxverf)]

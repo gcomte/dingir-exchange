@@ -575,7 +575,8 @@ impl<'r> From<&'r super::Trade> for models::MarketTrade {
     }
 }
 
-use crate::models::DecimalDbType;
+// use crate::models::Decimal;
+use sqlx::types::Decimal;
 use crate::types::OrderEventType;
 use std::str::FromStr;
 
@@ -597,9 +598,10 @@ impl MsgDataTransformer<models::OrderHistory> for ClosedOrder {
     }
 }
 
-fn decimal_warning<E: std::error::Error>(e: E) -> DecimalDbType {
+fn decimal_warning<E: std::error::Error>(e: E) -> Decimal {
     log::error!("Decimal decode fail {}", e);
-    DecimalDbType::default()
+    // Decimal::default()
+    Decimal::default()
 }
 
 impl<'r> From<&'r super::BalanceMessage> for models::BalanceHistory {
@@ -610,11 +612,11 @@ impl<'r> From<&'r super::BalanceMessage> for models::BalanceHistory {
             business_id: 0i64, // dummy data, this field is a reserve field and can be used freely for custom purposes
             asset: origin.asset.clone(),
             business: origin.business.clone(),
-            market_price: DecimalDbType::from_str(&origin.market_price).unwrap_or_else(decimal_warning),
-            change: DecimalDbType::from_str(&origin.change).unwrap_or_else(decimal_warning),
-            balance: DecimalDbType::from_str(&origin.balance).unwrap_or_else(decimal_warning),
-            balance_available: DecimalDbType::from_str(&origin.balance_available).unwrap_or_else(decimal_warning),
-            balance_frozen: DecimalDbType::from_str(&origin.balance_frozen).unwrap_or_else(decimal_warning),
+            market_price: Decimal::from_str(&origin.market_price).unwrap_or_else(decimal_warning),
+            change: Decimal::from_str(&origin.change).unwrap_or_else(decimal_warning),
+            balance: Decimal::from_str(&origin.balance).unwrap_or_else(decimal_warning),
+            balance_available: Decimal::from_str(&origin.balance_available).unwrap_or_else(decimal_warning),
+            balance_frozen: Decimal::from_str(&origin.balance_frozen).unwrap_or_else(decimal_warning),
             detail: origin.detail.clone(),
         }
     }

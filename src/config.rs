@@ -133,17 +133,53 @@ impl Default for Settings {
     }
 }
 
+impl TryFrom<Config> for Settings {
+    type Error = config_rs::ConfigError;
+
+    fn try_from(config: Config) -> Result<Self, Self::Error> {
+        Ok(Settings {
+            debug: config.get("debug").unwrap_or_default(),
+            db_log: config.get("db_log").unwrap_or_default(),
+            db_history: config.get("db_history").unwrap_or_default(),
+            keycloak_pubkey: config.get("keycloak_pubkey").unwrap_or_default(),
+            keycloak_admin_role: config.get("keycloak_admin_role").unwrap_or_default(),
+            keycloak_deposit_admin_role: config
+                .get("keycloak_deposit_admin_role")
+                .unwrap_or_default(),
+            keycloak_withdrawal_admin_role: config
+                .get("keycloak_withdrawal_admin_role")
+                .unwrap_or_default(),
+            history_persist_policy: PersistPolicy::ToMessage,
+            market_from_db: config.get("market_from_db").unwrap_or_default(),
+            assets: config.get("assets").unwrap_or_default(),
+            markets: config.get("markets").unwrap_or_default(),
+            consumer_group: config.get("consumer_group").unwrap_or_default(),
+            brokers: config.get("brokers").unwrap_or_default(),
+            persist_interval: config.get("persist_interval").unwrap_or_default(),
+            slice_interval: config.get("slice_interval").unwrap_or_default(),
+            slice_keeptime: config.get("slice_keeptime").unwrap_or_default(),
+            history_thread: config.get("history_thread").unwrap_or_default(),
+            cache_timeout: config.get("cache_timeout").unwrap_or_default(),
+            disable_self_trade: config.get("disable_self_trade").unwrap_or_default(),
+            disable_market_order: config.get("disable_market_order").unwrap_or_default(),
+            user_order_num_limit: config.get("user_order_num_limit").unwrap_or_default(),
+        })
+    }
+}
+
+
 impl Settings {
     pub fn new() -> Self {
         // Initializes with `config/default.yaml`.
-        let mut conf = Config::default();
-        conf.merge(File::with_name("config/default")).unwrap();
-
-        // Merges with `config/RUN_MODE.yaml` (development as default).
         let run_mode = dotenv::var("RUN_MODE").unwrap_or_else(|_| "development".into());
-        conf.merge(File::with_name(&format!("config/{}", run_mode)).required(false))
-            .unwrap();
+        let run_config = format!("config/{}", run_mode);
 
-        conf.try_into().unwrap()
+        let conf = Config::builder()
+            .add_source(File::with_name("config/default"))
+            .add_source(File::with_name(&run_config).required(false))
+            .build().unwrap()
+            .try_into().unwrap();
+
+        conf
     }
 }

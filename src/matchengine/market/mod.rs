@@ -293,7 +293,7 @@ impl Market {
     ) -> Order {
         log::debug!("execute_order {:?}", taker);
 
-        // the the older version, PUT means being inserted into orderbook
+        // in the older version, PUT means being inserted into orderbook
         // so if an order is matched instantly, only 'FINISH' event will occur, no 'PUT' event
         // now PUT means being created
         // we can revisit this decision later
