@@ -32,7 +32,8 @@ log = "0.4.14"
 nix = { version = "0.27.1", features = ["process"] }
 num_enum = "0.7.1"
 # orchestra = { git = "https://github.com/gcomte/orchestra.git", branch = "master", features = [ "exchange" ] }
-orchestra = { path = "../orchestra", features = ["exchange"]}
+# orchestra = { path = "../orchestra", features = ["exchange"]}
+orchestra = { git = "https://github.com/quantomslash/orchestra", features = ["exchange"] }
 # paperclip = { git = "https://github.com/fluidex/paperclip.git", features = [ "actix", "chrono", "rust_decimal" ] }
 paperclip = { version = "0.8.2", features = [ "chrono", "rust_decimal", "actix4" ] }
 qstring = "0.7.2"
