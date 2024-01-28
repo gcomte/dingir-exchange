@@ -178,7 +178,8 @@ impl Settings {
             .add_source(File::with_name("config/default"))
             .add_source(File::with_name(&run_config).required(false))
             .build().unwrap()
-            .try_into().unwrap();
+            .try_into().unwrap_or_default();
+
 
         conf
     }
