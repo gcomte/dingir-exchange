@@ -255,11 +255,11 @@ where
 }
 
 impl InsertTableBatch {
-    pub async fn sql_query_fine<'c, 'a, Q, C, DB>(qr_v: &'a [Q], conn: &'c mut C) -> Result<SqlResultExt, (Vec<Q>, sqlx::Error)>
+    pub async fn sql_query_fine<'c, 'a, Q, C, DB>(qr_v: &'a [Q], conn: &'c C) -> Result<SqlResultExt, (Vec<Q>, sqlx::Error)>
     where
         DB: CommonSQLQueryWithBind,
-        // for<'r> &'r mut C: Executor<'r, Database = DB>,
-        // &mut C: Executor<Database = DB>,
+        for<'r> &'r C: Executor<'r, Database = DB>,
+        // C: Executor<Database = DB>,
         C: std::borrow::BorrowMut<C> + Send,
         Q: Clone,
         [Q]: SqlxAction<'a, Self, DB>,
@@ -279,7 +279,7 @@ impl InsertTableBatch {
                 if qr_vm.len() >= (1 << n) {
                     let qr_used = &qr_vm[..(1 << n)];
                     //log::debug!("batch {} queries", qr_used.len());
-                    if let Err(e) = Self::sql_query(qr_used, &mut *conn).await {
+                    if let Err(e) = Self::sql_query(qr_used, &*conn).await {
                         return Err((qr_vm.to_vec(), e));
                     }
                     qr_vm = &qr_vm[(1 << n)..];
@@ -290,7 +290,7 @@ impl InsertTableBatch {
 
         if !qr_vm.is_empty() {
             //log::debug!("batch {} queries", qr_vm.len());
-            if let Err(e) = Self::sql_query(qr_vm, &mut *conn).await {
+            if let Err(e) = Self::sql_query(qr_vm, &*conn).await {
                 return Err((qr_vm.to_vec(), e));
             }
         }

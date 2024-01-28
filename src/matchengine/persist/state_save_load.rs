@@ -32,7 +32,7 @@ fn utest_get_last_slice() {
     );
 }
 
-pub async fn get_last_slice(conn: &mut ConnectionType) -> Option<SliceHistory> {
+pub async fn get_last_slice(conn: &ConnectionType) -> Option<SliceHistory> {
     let query = format!("select * from {} order by id desc limit 1", tablenames::SLICEHISTORY);
 
     sqlx::query_as(&query).fetch_optional(conn).await.unwrap()
@@ -83,7 +83,7 @@ fn utest_load_slice_from_db() {
     );
 }
 
-pub async fn load_slice_from_db(conn: &mut ConnectionType, slice_id: i64, controller: &mut Controller) {
+pub async fn load_slice_from_db(conn: &ConnectionType, slice_id: i64, controller: &mut Controller) {
     // load balance
     let mut last_balance_id = 0;
     let balance_query = format!(
@@ -97,7 +97,7 @@ pub async fn load_slice_from_db(conn: &mut ConnectionType, slice_id: i64, contro
         let balances: Vec<BalanceSlice> = sqlx::query_as(&balance_query)
             .bind(slice_id)
             .bind(last_balance_id)
-            .fetch_all(&mut *conn)
+            .fetch_all(&*conn)
             .await
             .unwrap();
 
@@ -127,7 +127,7 @@ pub async fn load_slice_from_db(conn: &mut ConnectionType, slice_id: i64, contro
         let orders: Vec<OrderSlice> = sqlx::query_as(&order_query)
             .bind(slice_id)
             .bind(order_id)
-            .fetch_all(&mut *conn)
+            .fetch_all(&*conn)
             .await
             .unwrap();
         for order in &orders {
@@ -185,7 +185,7 @@ fn utest_load_operation_log_from_db() {
     );
 }
 
-pub async fn load_operation_log_from_db(conn: &mut ConnectionType, operation_log_start_id: u64, controller: &mut Controller) {
+pub async fn load_operation_log_from_db(conn: &ConnectionType, operation_log_start_id: u64, controller: &mut Controller) {
     // LOAD operation_log
     let mut operation_log_start_id = operation_log_start_id as i64; // exclusive
     let query = format!(
@@ -197,7 +197,7 @@ pub async fn load_operation_log_from_db(conn: &mut ConnectionType, operation_log
     loop {
         let operation_logs: Vec<OperationLog> = sqlx::query_as(&query)
             .bind(operation_log_start_id)
-            .fetch_all(&mut *conn)
+            .fetch_all(&*conn)
             .await
             .unwrap();
 
@@ -216,16 +216,16 @@ pub async fn load_operation_log_from_db(conn: &mut ConnectionType, operation_log
 
 pub use storage::config::MarketConfigs;
 
-pub async fn init_config_from_db(conn: &mut ConnectionType, config: &mut config::Settings) -> anyhow::Result<MarketConfigs> {
+pub async fn init_config_from_db(conn: &ConnectionType, config: &mut config::Settings) -> anyhow::Result<MarketConfigs> {
     let mut market_cfg = MarketConfigs::new();
 
     //replace configs data with which loadedfrom db
-    config.assets = market_cfg.load_asset_from_db(&mut *conn).await?;
-    config.markets = market_cfg.load_market_from_db(&mut *conn).await?;
+    config.assets = market_cfg.load_asset_from_db(&*conn).await?;
+    config.markets = market_cfg.load_market_from_db(&*conn).await?;
     Ok(market_cfg)
 }
 
-pub async fn init_from_db(conn: &mut ConnectionType, controller: &mut Controller) -> anyhow::Result<()> {
+pub async fn init_from_db(conn: &ConnectionType, controller: &mut Controller) -> anyhow::Result<()> {
     let last_slice = get_last_slice(conn).await;
     let mut end_operation_log_id = 0;
     if let Some(slice) = last_slice {
@@ -339,7 +339,7 @@ pub async fn dump_orders(conn: &mut ConnectionType, slice_id: i64, controller: &
     Ok(())
 }
 
-pub async fn update_slice_history(conn: &mut ConnectionType, slice_id: i64, controller: &Controller) -> SimpleResult {
+pub async fn update_slice_history(conn: &ConnectionType, slice_id: i64, controller: &Controller) -> SimpleResult {
     let sequencer = &controller.sequencer;
     let slice_history = SliceHistory {
         time: slice_id,
@@ -376,18 +376,18 @@ fn utest_delete_slice() {
 
 const SLICE_KEEP_TIME: i64 = 30; //3 * 24 * 3600;
 
-pub async fn delete_slice(conn: &mut ConnectionType, slice_id: i64) -> SimpleResult {
+pub async fn delete_slice(conn: &ConnectionType, slice_id: i64) -> SimpleResult {
     sqlx::query(&format!("delete from {} where slice_id = $1", tablenames::BALANCESLICE))
         .bind(slice_id)
-        .execute(&mut *conn)
+        .execute(&*conn)
         .await?;
     sqlx::query(&format!("delete from {} where slice_id = $1", tablenames::ORDERSLICE))
         .bind(slice_id)
-        .execute(&mut *conn)
+        .execute(&*conn)
         .await?;
     sqlx::query(&format!("delete from {} where time = $1", tablenames::SLICEHISTORY))
         .bind(slice_id)
-        .execute(&mut *conn)
+        .execute(&*conn)
         .await?;
 
     Ok(())
@@ -418,15 +418,15 @@ fn utest_clear_slice() {
 pub async fn clear_slice(conn: &mut ConnectionType, slice_id: i64) -> SimpleResult {
     let count: i64 = sqlx::query_scalar(&format!("select count(*) from {} where time > $1", tablenames::SLICEHISTORY))
         .bind(slice_id - SLICE_KEEP_TIME)
-        .fetch_one(&mut *conn)
+        .fetch_one(&*conn)
         .await?;
     log::info!("recent slice count: {}", count);
     let slices: Vec<i64> = sqlx::query_scalar(&format!("select time from {} where time <= $1", tablenames::SLICEHISTORY))
         .bind(slice_id - SLICE_KEEP_TIME)
-        .fetch_all(&mut *conn)
+        .fetch_all(&*conn)
         .await?;
     for entry_time in slices {
-        delete_slice(&mut *conn, entry_time).await?;
+        delete_slice(&*conn, entry_time).await?;
     }
     Ok(())
 }

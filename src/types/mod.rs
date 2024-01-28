@@ -42,5 +42,6 @@ pub enum OrderEventType {
 //pub type DbType = diesel::mysql::Mysql;
 //pub type ConnectionType = diesel::mysql::MysqlConnection;
 pub type DbType = sqlx::Postgres;
-pub type ConnectionType = sqlx::postgres::PgConnection;
+// pub type ConnectionType = sqlx::postgres::PgConnection;
+pub type ConnectionType = sqlx::PgPool;
 pub type DBErrType = sqlx::Error;

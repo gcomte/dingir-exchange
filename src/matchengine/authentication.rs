@@ -58,9 +58,21 @@ pub fn grpc_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
     Ok(req)
 }
 
-pub fn rest_auth(req: ServiceRequest, jwt: &str) -> Result<ServiceRequest, Box<dyn Error + Send + Sync>> {
+pub fn rest_auth<'a>(req: ServiceRequest, jwt: &'a str) -> Result<ServiceRequest, (actix_web::Error, ServiceRequest)> {
     // let jwt = jwt.replace("Bearer ", ""); // already done by actix-web
-    let token = validate_jwt(jwt)?;
+    // let token = validate_jwt(jwt)?;
+    // Manually match the token
+    let token = match validate_jwt(jwt) {
+        Ok(token_data) => token_data,
+        Err(err) => {
+            return Err((actix_web::Error::from(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                err.to_string(),
+            )), req));
+        }
+    };
+
+    // Add extensions to request
     req.extensions_mut().insert(get_user_extension(token));
 
     // reload calls the GRPC interface and must therefore forward the JWT

@@ -10,7 +10,8 @@ use dingir_exchange::restapi::public_history::{order_trades, recent_trades};
 use dingir_exchange::restapi::state::{AppCache, AppState};
 use dingir_exchange::restapi::tradingview::{chart_config, history, search_symbols, symbols, ticker, unix_timestamp};
 use fluidex_common::non_blocking_tracing;
-// use paperclip::actix::web::{self, HttpResponse};
+use paperclip::actix::web::{self, HttpResponse};
+use paperclip::actix::{HttpResponseWrapper, OpenApiExt};
 // use paperclip::actix::{api_v2_operation, OpenApiExt};
 use sqlx::postgres::Postgres;
 use sqlx::Pool;
@@ -87,7 +88,15 @@ async fn main() -> std::io::Result<()> {
                         )
                     } else {
                         web::scope("/manage")
-                            .service(web::resource("/").to(|| HttpResponse::Forbidden().body(String::from("No manage endpoint"))))
+                            // .service(web::resource("/").to(|| HttpResponse::Forbidden().body(String::from("No manage endpoint"))))
+                            .service(web::resource("/").to(|| 
+                                async move {
+                                    HttpResponseWrapper(
+                                        HttpResponse::Forbidden()
+                                            .body(String::from("No manage endpoint")),
+                                    
+                                    )
+                                }))
                     }),
             )
             .with_json_spec_at("/api/spec")
@@ -102,7 +111,7 @@ async fn main() -> std::io::Result<()> {
     server.bind("0.0.0.0:50053")?.run().await
 }
 
-async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
+async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, (Error, ServiceRequest)> {
     for public_endpoint in PUBLIC_ENDPOINTS.iter() {
         if req.path().starts_with(public_endpoint) {
             return Ok(req);
@@ -112,14 +121,20 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
     let config = req.app_data::<Config>().cloned().unwrap_or_default();
     let req = match authentication::rest_auth(req, credentials.token()) {
         Ok(req) => req,
-        Err(_) => {
-            return Err(AuthenticationError::from(config).into());
+        Err((_, req)) => {
+            log::warn!("Reject REST call; Invalid token.");
+            return Err((AuthenticationError::from(config).into(), req))
         }
     };
 
     for admin_endpoint in ADMIN_ENDPOINTS.iter() {
         if req.path().starts_with(admin_endpoint) {
-            rest_block_non_admins(&req)?;
+            // rest_block_non_admins(req)?;
+            let result = rest_block_non_admins(&req);
+            if let Err(e) = result {
+                return Err((e, req));
+            }
+            
         }
     }
 
@@ -139,7 +154,7 @@ fn rest_block_non_admins(req: &ServiceRequest) -> Result<(), Error> {
     Ok(())
 }
 
-#[api_v2_operation]
-async fn ping() -> Result<&'static str, actix_web::Error> {
-    Ok("pong")
+// #[api_v2_operation]
+async fn ping() -> HttpResponseWrapper {
+    HttpResponseWrapper(HttpResponse::Ok().body(String::from("pong")))
 }

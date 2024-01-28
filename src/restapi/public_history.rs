@@ -3,9 +3,10 @@ use crate::models::{self, TimestampDbType};
 use crate::restapi::errors::RpcError;
 use crate::restapi::state::AppState;
 use crate::restapi::types;
+use actix_web::HttpResponse;
 use chrono::{DateTime, SecondsFormat, Utc};
 use core::cmp::min;
-use paperclip::actix::api_v2_operation;
+use paperclip::actix::{api_v2_operation, HttpResponseWrapper};
 use paperclip::actix::web::{self, HttpRequest, Json};
 use sqlx::types::Decimal;
 
@@ -15,13 +16,15 @@ fn check_market_exists(_market: &str) -> bool {
 }
 
 // #[api_v2_operation]
-pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<Vec<models::MarketTrade>>, actix_web::Error> {
+// pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<Vec<models::MarketTrade>>, actix_web::Error> {
+pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> HttpResponseWrapper {
     let market = req.match_info().get("market").unwrap();
     let qstring = qstring::QString::from(req.query_string());
     let limit = min(100, qstring.get("limit").unwrap_or_default().parse::<usize>().unwrap_or(20));
     log::debug!("recent_trades market {} limit {}", market, limit);
     if !check_market_exists(market) {
-        return Err(RpcError::bad_request("invalid market").into());
+        // return Err(RpcError::bad_request("invalid market").into());
+        return HttpResponseWrapper(HttpResponse::BadRequest().body("invalid market"));
     }
 
     // TODO: this API result should be cached, either in-memory or using redis
@@ -32,14 +35,29 @@ pub async fn recent_trades(req: HttpRequest, data: web::Data<AppState>) -> Resul
 
     let sql_query = format!("select * from {} where market = $1 order by time desc limit {}", MARKETTRADE, limit);
 
-    let trades: Vec<models::MarketTrade> = sqlx::query_as(&sql_query)
+    // let trades: Vec<models::MarketTrade> = sqlx::query_as(&sql_query)
+    //     .bind(market)
+    //     .fetch_all(&data.db)
+    //     .await
+    //     .map_err(|err| actix_web::Error::from(RpcError::from(err)));
+    let result: Result<Vec<models::MarketTrade>, sqlx::Error> = sqlx::query_as(sql_query.as_str())
         .bind(market)
         .fetch_all(&data.db)
-        .await
-        .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
+        .await;
 
-    log::debug!("query {} recent_trades records", trades.len());
-    Ok(Json(trades))
+    match result {
+        Ok(trades) => {
+            log::debug!("query {} recent_trades records", trades.len());  
+            HttpResponseWrapper(HttpResponse::Ok().json(trades))
+
+        },
+        Err(_) => HttpResponseWrapper(HttpResponse::BadRequest().body("invalid market")),
+    }
+
+    // log::debug!("query {} recent_trades records", trades.len());
+    // Ok(Json(trades))
+    // HttpResponseWrapper(HttpResponse::Ok().json(trades))
+
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]

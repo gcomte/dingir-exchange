@@ -40,7 +40,7 @@ async fn prepare() -> anyhow::Result<GrpcHandler> {
     let mut conn = ConnectionType::connect(&settings.db_log)
         .await
         .expect(&*format!("cannot connect to db at {}", settings.db_log));
-    persist::MIGRATOR.run(&mut conn).await?;
+    persist::MIGRATOR.run(&conn).await?;
     log::info!("MIGRATOR done");
 
     let market_cfg = if settings.market_from_db {

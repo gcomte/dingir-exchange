@@ -68,6 +68,7 @@ fn main() {
             .set("session.timeout.ms", "6000")
             .set("enable.auto.commit", "false")
             .set("auto.offset.reset", "earliest")
+            // .set("allow.auto.create.topics", "true")
             .create()
             .unwrap();
 
@@ -85,7 +86,7 @@ fn main() {
                 },
 
                 err = cr_main.run_stream(|cr|cr.stream()) => {
-                    log::error!("Kafka consumer error: {}", err);
+                    log::error!("Kafka consumer errorzzzzzz: {}", err);
                 }
             }
         }

@@ -4,8 +4,9 @@ use crate::models::{OrderHistory, TimestampDbType};
 use crate::restapi::errors::RpcError;
 use crate::restapi::state::AppState;
 use core::cmp::min;
-use actix_web::HttpMessage;
+use actix_web::{HttpMessage, HttpResponse};
 use paperclip::actix::web::{self, HttpRequest, Json};
+use paperclip::actix::HttpResponseWrapper;
 // use paperclip::actix::{api_v2_operation, Apiv2Schema};
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -16,7 +17,8 @@ pub struct OrderResponse {
 }
 
 // #[api_v2_operation]
-pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<OrderResponse>, actix_web::Error> {
+// pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Json<OrderResponse>, actix_web::Error> {
+pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> HttpResponseWrapper {
     let market = req.match_info().get("market").unwrap();
     let user_id = req.extensions().get::<UserExtension>().unwrap().user_id;
     let qstring = qstring::QString::from(req.query_string());
@@ -33,24 +35,41 @@ pub async fn my_orders(req: HttpRequest, data: web::Data<AppState>) -> Result<Js
         "select * from {} where {} order by id desc limit {} offset {}",
         table, condition, limit, offset
     );
-    let orders: Vec<OrderHistory> = if market == "all" {
+    let result: Result<Vec<OrderHistory>, sqlx::Error> = if market == "all" {
         sqlx::query_as(&order_query).bind(user_id.to_string())
     } else {
         sqlx::query_as(&order_query).bind(market).bind(user_id.to_string())
     }
     .fetch_all(&data.db)
-    .await
-    .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
+    .await;
+    // .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
+    let orders = if let Ok(orders) = result {
+        orders
+    } else {
+        return HttpResponseWrapper(HttpResponse::InternalServerError().finish());        
+    };
+
     let count_query = format!("select count(*) from {} where {}", table, condition);
-    let total: i64 = if market == "all" {
+    let result: Result<i64, sqlx::Error> = if market == "all" {
         sqlx::query_scalar(&count_query).bind(user_id.to_string())
     } else {
         sqlx::query_scalar(&count_query).bind(market).bind(user_id.to_string())
     }
     .fetch_one(&data.db)
-    .await
-    .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
-    Ok(Json(OrderResponse { total, orders }))
+    .await;
+    let total = if let Ok(total) = result {
+        total
+    } else {
+        return HttpResponseWrapper(HttpResponse::InternalServerError().finish());
+    };
+
+
+    // Ok(Json(OrderResponse { total, orders }))
+    // .map_err(|err| actix_web::Error::from(RpcError::from(err)))?;
+// Fix the ? issue
+
+    // Ok(Json(OrderResponse { total, orders }))
+    HttpResponseWrapper(HttpResponse::Ok().json(OrderResponse { total, orders } ))
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]

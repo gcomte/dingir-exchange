@@ -1,7 +1,7 @@
 use std::collections::{hash_map, HashMap, VecDeque};
 use std::marker::PhantomData;
 use std::time::{Duration, Instant};
-use sqlx::Postgres;
+use sqlx::{Acquire, Postgres};
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::{sync, task};
 
@@ -319,7 +319,7 @@ where
     U: 'static + TableSchemas,
     U: for<'r> SqlxAction<'r, sqlxextend::InsertTable, DbType>,
 {
-    async fn execute(mut self, mut conn: sqlx::PgPool, ret: sync::mpsc::Sender<WriterMsg<U>>) {
+    async fn execute(mut self, conn: sqlx::PgPool, ret: sync::mpsc::Sender<WriterMsg<U>>) {
         let entries = &self.data;
 
         log::debug!(
@@ -328,7 +328,7 @@ where
             entries.len()
         );
 
-        let ret = match InsertTableBatch::sql_query_fine(entries.as_slice(), &mut conn).await {
+        let ret = match InsertTableBatch::sql_query_fine(entries.as_slice(), &conn).await {
             Ok(_) => {
                 if let Some((now, len)) = self.benchmark {
                     log::debug!(
@@ -508,6 +508,8 @@ struct DatabaseWriterScheduleCtx<T> {
     ctrl_notify: sync::mpsc::Sender<WriterMsg<T>>,
     // pool: sqlx::Pool<DbType>,
     pool: sqlx::PgPool,
+    // pool: sqlx::pool::PoolConnection<DbType>,
+    // pool: sqlx::pool::PoolConnection<DbType>,>
     
     complete_notify: sync::watch::Sender<TaskNotifyFlag>,
     status_notify: sync::watch::Sender<DatabaseWriterStatus>,
@@ -533,12 +535,15 @@ where
 
             tokio::select! {
                 acquire_ret = self.pool.acquire(), if (!error_task_stack.is_empty()
+                // acquire_ret = sqlx::Pool::<Postgres>::connect(&self.pool), if (!error_task_stack.is_empty()
                     || (!next_task_stack.is_empty() &&
                     status_tracing.spawning_tasks < self.config.spawn_limit)) => {
                     match acquire_ret {
                         Ok(conn) => {
                             if !error_task_stack.is_empty() {
-                                tokio::spawn(error_task_stack.pop_back().unwrap().execute(conn, self.ctrl_notify.clone()));
+                                let pool = self.pool.clone();
+
+                                tokio::spawn(error_task_stack.pop_back().unwrap().execute(pool, self.ctrl_notify.clone()));
                             }else{
                                 status_tracing.spawning_tasks += 1;
                                 let mut task = next_task_stack.pop_back().unwrap();
@@ -549,7 +554,8 @@ where
                                 if let Some(notifies) = task.notify_flag.as_ref(){
                                     notify_tracing.update_from(notifies);
                                 }
-                                tokio::spawn(task.execute(conn, self.ctrl_notify.clone()));
+                                let pool = self.pool.clone();
+                                tokio::spawn(task.execute(pool, self.ctrl_notify.clone()));
                             }
                         },
                         Err(err) => {

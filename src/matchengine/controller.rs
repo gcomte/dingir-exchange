@@ -615,8 +615,8 @@ impl Controller {
 
                 let ret = rt.block_on(async move {
                     let mut conn = ConnectionType::connect(&db_str).await?;
-                    crate::persist::MIGRATOR.run(&mut conn).await?;
-                    crate::message::persist::MIGRATOR.run(&mut conn).await
+                    crate::persist::MIGRATOR.run(&conn).await?;
+                    crate::message::persist::MIGRATOR.run(&conn).await
                 });
 
                 log::info!("migration task done");
