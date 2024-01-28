@@ -26,17 +26,26 @@ fn main() {
         .build()
         .expect("build runtime");
 
+    let consumer_group = if settings.consumer_group.is_empty() {
+        "consumer_group"
+    } else {
+        &settings.consumer_group
+    };
+
     rt.block_on(async move {
         let consumer: StreamConsumer = fluidex_common::rdkafka::config::ClientConfig::new()
             .set("bootstrap.servers", &settings.brokers)
-            .set("group.id", &settings.consumer_group)
+            .set("group.id", consumer_group)
             .set("enable.partition.eof", "false")
             .set("session.timeout.ms", "6000")
             .set("enable.auto.commit", "false")
             .set("auto.offset.reset", "earliest")
-            // .set("allow.auto.create.topics", "true")S
+            // .set("allow.auto.create.topics", "true")
             .create()
             .unwrap();
+
+        // println!("Consumer: {:?}", &settings.consumer_group);
+        // panic!();
 
         let consumer = std::sync::Arc::new(consumer);
 
