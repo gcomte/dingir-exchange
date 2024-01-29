@@ -133,11 +133,11 @@ impl Default for Settings {
     }
 }
 
-impl TryFrom<Config> for Settings {
-    type Error = config_rs::ConfigError;
+impl From<Config> for Settings {
+    // type Error = config_rs::ConfigError;
 
-    fn try_from(config: Config) -> Result<Self, Self::Error> {
-        Ok(Settings {
+    fn from(config: Config) -> Self {
+        Settings {
             debug: config.get("debug").unwrap_or_default(),
             db_log: config.get("db_log").unwrap_or_default(),
             db_history: config.get("db_history").unwrap_or_default(),
@@ -163,7 +163,7 @@ impl TryFrom<Config> for Settings {
             disable_self_trade: config.get("disable_self_trade").unwrap_or_default(),
             disable_market_order: config.get("disable_market_order").unwrap_or_default(),
             user_order_num_limit: config.get("user_order_num_limit").unwrap_or_default(),
-        })
+        }
     }
 }
 
@@ -177,8 +177,10 @@ impl Settings {
         let conf = Config::builder()
             .add_source(File::with_name("config/default"))
             .add_source(File::with_name(&run_config).required(false))
-            .build().unwrap()
-            .try_into().unwrap_or_default();
-        conf
+            .build().unwrap();
+
+
+        conf.try_deserialize()
+            .unwrap_or_else(|_| Settings::default())
     }
 }

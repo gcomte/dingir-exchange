@@ -18,7 +18,7 @@ fn main() {
     dotenv::dotenv().ok();
     let _guard = non_blocking_tracing::setup();
 
-    let settings = config::Settings::default();
+    let settings = config::Settings::new();
     log::debug!("Settings: {:?}", settings);
 
     let rt: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread()
