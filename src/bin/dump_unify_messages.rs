@@ -68,7 +68,6 @@ fn main() {
             .set("session.timeout.ms", "6000")
             .set("enable.auto.commit", "false")
             .set("auto.offset.reset", "earliest")
-            // .set("allow.auto.create.topics", "true")
             .create()
             .unwrap();
 
