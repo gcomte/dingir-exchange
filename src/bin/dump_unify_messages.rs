@@ -86,7 +86,7 @@ fn main() {
                 },
 
                 err = cr_main.run_stream(|cr|cr.stream()) => {
-                    log::error!("Kafka consumer errorzzzzzz: {}", err);
+                    log::error!("Kafka consumer error: {}", err);
                 }
             }
         }
