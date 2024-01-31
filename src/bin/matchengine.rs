@@ -15,7 +15,7 @@ use dingir_exchange::server::GrpcHandler;
 use dingir_exchange::types::ConnectionType;
 use fluidex_common::non_blocking_tracing;
 use orchestra::rpc::exchange::matchengine_server::MatchengineServer;
-use sqlx::Connection;
+use log::debug;
 
 fn main() {
     dotenv::dotenv().ok();
@@ -35,12 +35,18 @@ fn main() {
 
 async fn prepare() -> anyhow::Result<GrpcHandler> {
     let mut settings = config::Settings::new();
-    log::debug!("Settings: {:?}", settings);
+    debug!("Following settings used for matchengine:");
+    debug!("{:?}", settings);
+
+    debug!("Connecting to db");
 
     let mut conn = ConnectionType::connect(&settings.db_log)
         .await
         .expect(&*format!("cannot connect to db at {}", settings.db_log));
-    persist::MIGRATOR.run(&conn).await?;
+    log::info!("Connected to db");
+
+    // TODO: migration freezes 
+    // persist::MIGRATOR.run(&conn).await?;
     log::info!("MIGRATOR done");
 
     let market_cfg = if settings.market_from_db {
@@ -59,7 +65,7 @@ async fn prepare() -> anyhow::Result<GrpcHandler> {
 
 async fn grpc_run(mut grpc: GrpcHandler) -> Result<(), Box<dyn std::error::Error>> {
     let addr = "0.0.0.0:50051".parse().unwrap();
-    log::info!("Starting gprc service");
+    log::info!("Starting gprc service on address: {addr:?}");
 
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
     let on_leave = grpc.on_leave();

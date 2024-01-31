@@ -181,7 +181,7 @@ function checkMessages(messages) {
 }
 
 async function mainTest(withMQ) {
-  await client.debugReset(await client.auth.getAuthTokenMeta(TestUser.ADMIN));
+  // await client.debugReset(await client.auth.getAuthTokenMeta(TestUser.ADMIN));
 
   let kafkaConsumer: KafkaConsumer;
   if (withMQ) {

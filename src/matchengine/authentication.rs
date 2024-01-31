@@ -16,10 +16,17 @@ fn validate_jwt(jwt: &str) -> Result<TokenData<Claims>, Box<dyn Error + Send + S
     log::debug!("Keycloak public key: {}", settings.keycloak_pubkey);
     log::debug!("Authentication token: {}", &jwt);
 
+    let mut validation = Validation::new(Algorithm::RS512);
+    validation.set_audience(&["ethanmarcus"]);
+    // validation.validate_iss = false;
+
+    // Validate token
+
+
     let token = decode::<Claims>(
         jwt,
         &DecodingKey::from_rsa_pem(settings.keycloak_pubkey.as_ref()).unwrap(),
-        &Validation::new(Algorithm::RS512),
+        &validation,
     );
 
     let token = match token {
