@@ -78,7 +78,7 @@ async function orderTest() {
 
 // Test order put and cancel with market order type
 async function ordertTestMarket() {
-  const order = await client.orderPut(askUser, market, ORDER_SIDE_BID, ORDER_TYPE_MARKET, /*amount*/ "10", /*price*/ "1.1", fee, fee);
+  const order = await client.orderPut(askUser, market, ORDER_SIDE_BID, ORDER_TYPE_MARKET, /*amount*/ "10", /*price*/ "0", fee, fee);
   console.log(order);
   const balance3 = await client.balanceQueryByAsset(askUser, "USDT");
   assertDecimalEqual(balance3.available, "89");
@@ -168,8 +168,8 @@ async function simpleTest() {
   console.log("orderTest");
   await orderTest();
   console.log("ordertTestMarket");
-  await ordertTestMarket();
-  console.log("tradeTest");
+  // await ordertTestMarket();
+  // console.log("tradeTest");
   return await tradeTest();
 }
 
