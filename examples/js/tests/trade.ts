@@ -181,6 +181,7 @@ function checkMessages(messages) {
 }
 
 async function mainTest(withMQ) {
+  // TODO: Debug reset doesn't work due to db migration issue
   // await client.debugReset(await client.auth.getAuthTokenMeta(TestUser.ADMIN));
 
   let kafkaConsumer: KafkaConsumer;
